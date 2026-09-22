@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/*
+ * Brand tokens — change these to match obclub.co exactly.
+ * Every color in the app comes from here.
+ */
+@theme {
+  --color-ink: #0a0a0b;        /* page background */
+  --color-surface: #131315;    /* cards */
+  --color-elevated: #1b1b1e;   /* inputs, hover */
+  --color-line: #2a2a2e;       /* borders */
+  --color-bone: #f3efe6;       /* primary text */
+  --color-mute: #9a978f;       /* secondary text */
+  --color-gold: #c9a45c;       /* accent */
+  --color-gold-soft: #e7d4a4;
+  --color-good: #7fbf8e;
+  --color-bad: #e07a6b;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-serif), ui-serif, Georgia, serif;
+}
+
+@layer base {
+  html { background: var(--color-ink); color-scheme: dark; }
+  body {
+    @apply bg-ink text-bone font-sans antialiased;
+    min-height: 100dvh;
+  }
+  ::selection { background: var(--color-gold); color: var(--color-ink); }
+}
+
+@utility container-x { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
+@utility eyebrow { @apply text-[11px] font-medium uppercase tracking-[0.28em] text-gold; }
+@utility display { @apply font-display font-normal leading-[1.02] tracking-tight; }
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium
+    transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary { @apply btn bg-bone text-ink hover:bg-gold-soft; }
+@utility btn-gold { @apply btn bg-gold text-ink hover:bg-gold-soft; }
+@utility btn-ghost { @apply btn border border-line text-bone hover:border-bone/50 hover:bg-elevated; }
+@utility card { @apply rounded-2xl border border-line bg-surface; }
+@utility input {
+  @apply w-full rounded-full border border-line bg-elevated px-5 py-3 text-sm text-bone
+    placeholder:text-mute/70 outline-none transition focus:border-gold;
+}
+@utility grain {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgb(201 164 92 / 0.16), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgb(243 239 230 / 0.05), transparent 70%);
+}
