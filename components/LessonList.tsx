@@ -16,9 +16,9 @@ export function LessonList({
       {lessons.map((l, i) => {
         const active = l.id === activeId;
         const icon = l.completed ? (
-          <span className="grid size-8 place-items-center rounded-full bg-gold text-ink"><Check /></span>
+          <span className="grid size-8 place-items-center rounded-full bg-accent text-ink"><Check /></span>
         ) : l.unlocked ? (
-          <span className={`grid size-8 place-items-center rounded-full border ${active ? "border-gold text-gold" : "border-line text-bone"}`}><Play className="size-3.5" /></span>
+          <span className={`grid size-8 place-items-center rounded-full border ${active ? "border-accent text-accent" : "border-line text-bone"}`}><Play className="size-3.5" /></span>
         ) : (
           <span className="grid size-8 place-items-center rounded-full border border-line text-mute"><Lock className="size-3.5" /></span>
         );
@@ -27,7 +27,7 @@ export function LessonList({
             {icon}
             <div className="min-w-0 flex-1">
               <p className="text-[11px] uppercase tracking-widest text-mute">Lesson {i + 1}</p>
-              <p className={`truncate text-sm ${active ? "text-gold" : l.unlocked ? "text-bone" : "text-mute"}`}>{l.title}</p>
+              <p className={`truncate text-sm ${active ? "text-accent" : l.unlocked ? "text-bone" : "text-mute"}`}>{l.title}</p>
             </div>
             <div className="shrink-0 text-right text-xs text-mute">
               {l.duration_minutes ? `${l.duration_minutes} min` : null}

@@ -68,7 +68,7 @@ export function LessonPlayer(props: Props) {
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
         {watched ? (
-          <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-4 py-2 text-sm text-gold">
+          <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 px-4 py-2 text-sm text-accent">
             <Check /> Video watched
           </span>
         ) : (
@@ -77,7 +77,7 @@ export function LessonPlayer(props: Props) {
           </button>
         )}
         {complete && (
-          <Link href={nextHref} className="btn-gold">
+          <Link href={nextHref} className="btn-accent">
             {nextLabel} <Arrow />
           </Link>
         )}
@@ -176,7 +176,7 @@ function Quiz({
             </p>
           </div>
           {result.passed ? (
-            <Link href={nextHref} className="btn-gold">
+            <Link href={nextHref} className="btn-accent">
               {nextLabel} <Arrow />
             </Link>
           ) : (
@@ -210,7 +210,7 @@ function Quiz({
                     : isWrongPick
                       ? "border-bad/60 bg-bad/10"
                       : selected
-                        ? "border-gold bg-gold/10"
+                        ? "border-accent bg-accent/10"
                         : "border-line hover:border-bone/30";
                   return (
                     <label
@@ -225,7 +225,7 @@ function Quiz({
                         value={value}
                         checked={selected}
                         onChange={() => setAnswers((a) => ({ ...a, [q.id]: value }))}
-                        className="size-4 accent-[var(--color-gold)]"
+                        className="size-4 accent-[var(--color-accent)]"
                       />
                       <span className="flex-1">{opt}</span>
                       {isCorrect && <Check className="size-4 text-good" />}
@@ -234,14 +234,14 @@ function Quiz({
                 })}
               </div>
               {fb?.explanation && (
-                <p className="mt-4 border-l-2 border-gold/50 pl-4 text-sm leading-relaxed text-mute">{fb.explanation}</p>
+                <p className="mt-4 border-l-2 border-accent/50 pl-4 text-sm leading-relaxed text-mute">{fb.explanation}</p>
               )}
             </fieldset>
           );
         })}
         {!result && (
           <div className="flex items-center gap-4">
-            <button className="btn-gold" disabled={!allAnswered || submitting}>
+            <button className="btn-accent" disabled={!allAnswered || submitting}>
               {submitting ? "Checking…" : "Submit answers"}
             </button>
             {!allAnswered && <span className="text-xs text-mute">Answer every question to submit.</span>}

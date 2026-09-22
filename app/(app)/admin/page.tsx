@@ -107,7 +107,7 @@ export default function AdminPage() {
                 </td>
                 <td className="px-5 py-4">
                   {r.is_admin ? (
-                    <span className="text-gold">Admin</span>
+                    <span className="text-accent">Admin</span>
                   ) : r.joined ? (
                     <span className="text-good">Joined {fmt(r.joined)}</span>
                   ) : (

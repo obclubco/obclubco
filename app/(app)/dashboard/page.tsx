@@ -56,14 +56,14 @@ export default function Dashboard() {
         {resume && resumeLesson && (
           <Link
             href={`/lesson/?course=${resume.course.slug}&id=${resumeLesson.id}`}
-            className="card group flex items-center justify-between gap-4 p-6 transition hover:border-gold/60"
+            className="card group flex items-center justify-between gap-4 p-6 transition hover:border-accent/60"
           >
             <div className="min-w-0">
               <p className="text-xs text-mute">{resume.completed > 0 ? "Pick up where you left off" : "Start here"}</p>
               <p className="mt-1 truncate font-medium">{resumeLesson.title}</p>
               <p className="truncate text-xs text-mute">{resume.course.title}</p>
             </div>
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gold text-ink transition group-hover:bg-gold-soft">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-ink transition group-hover:bg-accent-soft">
               <Arrow />
             </span>
           </Link>

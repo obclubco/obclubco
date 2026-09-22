@@ -23,12 +23,12 @@ export function CourseCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={course.cover_image_url} alt="" className="size-full object-cover opacity-80 transition duration-500 group-hover:scale-[1.03] group-hover:opacity-100" />
         ) : (
-          <div className="grain flex size-full items-end p-6">
-            <span className="display text-3xl text-bone/80">{course.title}</span>
+          <div className="grain grid size-full place-items-center">
+            <span className="font-display text-4xl font-medium tracking-tight text-bone/15">OBC</span>
           </div>
         )}
         {!course.is_published && (
-          <span className="absolute right-3 top-3 rounded-full bg-ink/80 px-3 py-1 text-[10px] uppercase tracking-widest text-gold">
+          <span className="absolute right-3 top-3 rounded-full bg-ink/80 px-3 py-1 text-[10px] uppercase tracking-widest text-accent">
             Draft
           </span>
         )}
@@ -46,7 +46,7 @@ export function CourseCard({
             <span>{Math.round(pct)}%</span>
           </div>
           <ProgressBar value={pct} />
-          <span className="mt-5 inline-flex items-center gap-2 text-sm text-bone transition group-hover:text-gold">
+          <span className="mt-5 inline-flex items-center gap-2 text-sm text-bone transition group-hover:text-accent">
             {status} <Arrow />
           </span>
         </div>

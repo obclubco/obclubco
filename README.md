@@ -127,9 +127,10 @@ A lesson with no questions is complete once the partner marks the video as watch
 
 ## Branding
 
-Every color and font is in [`app/globals.css`](app/globals.css) (the `@theme` block) and
-[`app/layout.tsx`](app/layout.tsx) (fonts). Change them there to match obclub.co exactly. Landing page text is in
-[`app/page.tsx`](app/page.tsx).
+The design follows obclub.co: near-black background with a faint grid and stars, a floating bordered nav,
+pill badges, white pill buttons, a heavy serif for headlines (Fraunces) and a wide-tracked sans for text (Geist).
+Colors live in [`app/globals.css`](app/globals.css) (the `@theme` block), fonts in [`app/layout.tsx`](app/layout.tsx),
+and the landing page text in [`app/page.tsx`](app/page.tsx).
 
 ## Project layout
 

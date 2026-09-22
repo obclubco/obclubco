@@ -3,7 +3,7 @@ import Link from "next/link";
 export function Loading() {
   return (
     <div className="container-x grid min-h-[50dvh] place-items-center">
-      <span className="size-6 animate-spin rounded-full border-2 border-line border-t-gold" aria-label="Loading" />
+      <span className="size-6 animate-spin rounded-full border-2 border-line border-t-accent" aria-label="Loading" />
     </div>
   );
 }

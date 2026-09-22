@@ -56,7 +56,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     return (
       <div className="card mt-10 p-6 sm:p-8">
         <p className="text-center text-sm">
-          Check <span className="text-gold">{email}</span> — we sent you a sign-in link.
+          Check <span className="text-accent">{email}</span> — we sent you a sign-in link.
         </p>
         <form onSubmit={verifyCode} className="mt-6 space-y-3">
           <label htmlFor="code" className="block text-center text-xs text-mute">

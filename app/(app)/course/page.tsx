@@ -73,7 +73,7 @@ function Course() {
             <ProgressBar value={pct} />
           </div>
           {next && (
-            <Link href={`/lesson/?course=${course.slug}&id=${next.id}`} className="btn-gold mt-10">
+            <Link href={`/lesson/?course=${course.slug}&id=${next.id}`} className="btn-accent mt-10">
               {done === 0 ? "Start course" : done === lessons.length ? "Review course" : "Continue"} <Arrow />
             </Link>
           )}

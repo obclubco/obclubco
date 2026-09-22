@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { Arrow } from "@/components/Icons";
+import { NavButton, SiteNav } from "@/components/SiteNav";
+import { Starfield } from "@/components/Starfield";
 
 const TRACKS = [
   {
@@ -27,104 +28,105 @@ const STEPS = [
   { title: "Unlock", body: "Pass the check and the next lesson opens. Track your progress as you go." },
 ];
 
+const NAV = [
+  { href: "https://www.obclub.co", label: "Home" },
+  { href: "#curriculum", label: "Curriculum" },
+  { href: "#how-it-works", label: "How it works" },
+];
+
 export default function Home() {
   // The login page sends already signed-in partners straight to their courses.
-  const cta = { href: "/login/", label: "Partner login" };
-
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="absolute inset-x-0 top-0 z-20">
-        <div className="container-x flex h-20 items-center justify-between">
-          <Logo />
-          <Link href={cta.href} className="btn-ghost px-5 py-2.5">
-            Log in
-          </Link>
-        </div>
-      </header>
+    <div className="grain relative flex min-h-dvh flex-col">
+      <Starfield count={140} />
+      <SiteNav links={NAV} cta={<NavButton href="/login/">Partner Login</NavButton>} />
 
-      <main className="flex-1">
+      <main className="relative flex-1">
         {/* Hero */}
-        <section className="grain relative overflow-hidden border-b border-line/70">
-          <div className="container-x flex min-h-[88dvh] flex-col justify-center pb-20 pt-36">
-            <p className="eyebrow">OB Club · Partnership Program</p>
-            <h1 className="display mt-6 max-w-4xl text-[clamp(3rem,9vw,7.5rem)]">
-              Learn from the room.
-              <br />
-              <em className="text-gold">Build</em> with the club.
-            </h1>
-            <p className="mt-8 max-w-xl text-base leading-relaxed text-mute sm:text-lg">
-              A private learning space for OB Club partners. Master sales, business building and personal branding with
-              video lessons from the builders, founders and operators in our ecosystem.
-            </p>
-            <div className="mt-10 flex flex-wrap items-center gap-3">
-              <Link href={cta.href} className="btn-primary">
-                {cta.label} <Arrow />
-              </Link>
-              <a href="#tracks" className="btn-ghost">
-                What you&apos;ll learn
-              </a>
-            </div>
-            <p className="mt-6 text-xs text-mute/80">By invitation only. Access is granted by the OB Club team.</p>
+        <section className="container-x flex flex-col items-center pb-20 pt-20 text-center sm:pt-28">
+          <span className="pill">
+            <span className="size-1.5 rounded-full bg-bone" /> The OBC Partnership Program
+          </span>
+          <h1 className="display mt-8 max-w-4xl font-bold text-[clamp(2.6rem,6.4vw,4.6rem)]">
+            Learn From Builders. Sell, Scale, and Stand Out.
+          </h1>
+          <p className="mt-7 max-w-xl text-[15px] leading-7 text-bone/75">
+            A private learning space for OB Club partners. Master sales, business building and personal branding with
+            video lessons from the founders and operators in our ecosystem.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/login/" className="btn-primary">
+              Partner Login <Arrow />
+            </Link>
+            <a href="#curriculum" className="btn-ghost">
+              View Curriculum <Arrow />
+            </a>
+          </div>
+          <p className="mt-6 max-w-xs text-xs leading-5 text-mute">
+            By invitation only. Sign in with the email the OBC team approved. No password needed.
+          </p>
+
+          <p className="eyebrow mt-20">What you&apos;ll master</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
+            {TRACKS.map((t) => (
+              <span key={t.n} className="font-display text-2xl font-medium text-bone/45 sm:text-3xl">
+                {t.title}
+              </span>
+            ))}
           </div>
         </section>
 
-        {/* Tracks */}
-        <section id="tracks" className="container-x py-24 sm:py-32">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <div>
-              <p className="eyebrow">The curriculum</p>
-              <h2 className="display mt-4 text-5xl sm:text-6xl">Three disciplines.</h2>
-            </div>
-            <p className="max-w-md text-mute">
+        {/* Curriculum */}
+        <section id="curriculum" className="container-x scroll-mt-24 py-24 sm:py-28">
+          <div className="flex flex-col items-center text-center">
+            <span className="pill">
+              <span className="size-1.5 rounded-full bg-bone" /> The curriculum
+            </span>
+            <h2 className="display mt-6 text-4xl sm:text-5xl">Three Disciplines.</h2>
+            <p className="mt-5 max-w-md text-sm leading-6 text-mute">
               Everything a partner needs to sell with confidence, build something durable and be known for it.
             </p>
           </div>
-          <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-3">
+          <div className="mt-14 grid gap-4 md:grid-cols-3">
             {TRACKS.map((t) => (
-              <article key={t.n} className="group bg-surface p-8 transition hover:bg-elevated sm:p-10">
-                <span className="font-display text-lg text-gold">{t.n}</span>
-                <h3 className="display mt-10 text-4xl">{t.title}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-mute">{t.body}</p>
+              <article key={t.n} className="card bg-surface/80 p-8 backdrop-blur transition hover:border-bone/25">
+                <span className="text-xs tracking-[0.25em] text-mute">{t.n}</span>
+                <h3 className="display mt-10 text-3xl">{t.title}</h3>
+                <p className="mt-4 text-sm leading-6 text-mute">{t.body}</p>
               </article>
             ))}
           </div>
         </section>
 
         {/* How it works */}
-        <section className="border-y border-line/70 bg-surface/40">
-          <div className="container-x grid gap-12 py-24 sm:py-32 lg:grid-cols-[1fr_1.4fr]">
-            <div>
-              <p className="eyebrow">How it works</p>
-              <h2 className="display mt-4 text-5xl sm:text-6xl">
-                Watch. Answer. <em className="text-gold">Unlock.</em>
-              </h2>
-            </div>
-            <ol className="space-y-px overflow-hidden rounded-2xl border border-line bg-line">
-              {STEPS.map((s, i) => (
-                <li key={s.title} className="flex gap-6 bg-ink p-7 sm:p-8">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full border border-gold/40 font-display text-lg text-gold">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <h3 className="text-lg font-medium">{s.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-mute">{s.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+        <section id="how-it-works" className="container-x scroll-mt-24 py-24 sm:py-28">
+          <div className="flex flex-col items-center text-center">
+            <span className="pill">
+              <span className="size-1.5 rounded-full bg-bone" /> How it works
+            </span>
+            <h2 className="display mt-6 text-4xl sm:text-5xl">Watch. Answer. Unlock.</h2>
           </div>
+          <ol className="mx-auto mt-14 grid max-w-5xl gap-4 md:grid-cols-3">
+            {STEPS.map((s, i) => (
+              <li key={s.title} className="card bg-surface/80 p-8 backdrop-blur">
+                <span className="grid size-10 place-items-center rounded-full border border-line text-sm text-bone">
+                  {i + 1}
+                </span>
+                <h3 className="display mt-8 text-2xl">{s.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-mute">{s.body}</p>
+              </li>
+            ))}
+          </ol>
         </section>
 
         {/* CTA */}
         <section className="container-x py-24 text-center sm:py-32">
-          <h2 className="display mx-auto max-w-3xl text-5xl sm:text-7xl">
-            Your seat is <em className="text-gold">waiting.</em>
-          </h2>
-          <p className="mx-auto mt-6 max-w-md text-mute">
-            Partners sign in with the email address the OB Club team has approved.
+          <h2 className="display mx-auto max-w-3xl text-4xl sm:text-6xl">Your Seat Is Waiting.</h2>
+          <p className="mx-auto mt-6 max-w-md text-sm leading-6 text-mute">
+            Partners sign in with the email address the OBC team has approved.
           </p>
-          <Link href={cta.href} className="btn-gold mt-10">
-            {cta.label} <Arrow />
+          <Link href="/login/" className="btn-primary mt-10">
+            Partner Login <Arrow />
           </Link>
         </section>
       </main>
