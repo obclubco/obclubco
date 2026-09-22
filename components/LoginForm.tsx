@@ -54,7 +54,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
 
   if (step === "sent") {
     return (
-      <div className="card mt-10 p-6 sm:p-8">
+      <div className="card bg-surface/80 p-6 backdrop-blur sm:p-8">
         <p className="text-center text-sm">
           Check <span className="text-accent">{email}</span> — we sent you a sign-in link.
         </p>
@@ -92,24 +92,26 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
   }
 
   return (
-    <form onSubmit={sendLink} className="mt-10 space-y-3">
-      <label htmlFor="email" className="sr-only">
-        Email
-      </label>
-      <input
-        id="email"
-        type="email"
-        required
-        autoComplete="email"
-        placeholder="you@company.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="input"
-      />
-      <button className="btn-primary w-full" disabled={busy}>
-        {busy ? "Sending…" : "Send sign-in link"} {!busy && <Arrow />}
-      </button>
-      {error && <p className="pt-2 text-center text-sm text-bad">{error}</p>}
+    <form onSubmit={sendLink}>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <label htmlFor="email" className="sr-only">
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="input flex-1"
+        />
+        <button className="btn-primary" disabled={busy}>
+          {busy ? "Sending…" : "Send sign-in link"} {!busy && <Arrow />}
+        </button>
+      </div>
+      {error && <p className="pt-4 text-center text-sm text-bad">{error}</p>}
     </form>
   );
 }

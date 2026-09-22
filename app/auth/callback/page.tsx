@@ -33,7 +33,7 @@ export default function AuthCallback() {
 
       if (session) return router.replace(next);
       const reason = /not.?authori|saving new user/i.test(errorDescription ?? "") ? "not_authorized" : "link_invalid";
-      router.replace(`/login/?error=${reason}`);
+      router.replace(`/?error=${reason}`);
     })();
   }, [router]);
 

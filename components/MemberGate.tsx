@@ -29,7 +29,7 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
       .then((result) => {
         if (cancelled) return;
         if (result === "signed_out") {
-          router.replace(`/login/?next=${encodeURIComponent(pathname + window.location.search)}`);
+          router.replace(`/?next=${encodeURIComponent(pathname + window.location.search)}`);
         } else if (result === "not_allowed") {
           router.replace("/no-access/");
         } else {

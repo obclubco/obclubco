@@ -36,8 +36,13 @@ export function SiteNav({
 }
 
 export function NavButton({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="btn-primary px-4 py-2.5 text-[13px] sm:px-5">
+  const className = "btn-primary px-4 py-2.5 text-[13px] sm:px-5";
+  return href.startsWith("http") ? (
+    <a href={href} className={className}>
+      {children} <Arrow />
+    </a>
+  ) : (
+    <Link href={href} className={className}>
       {children} <Arrow />
     </Link>
   );

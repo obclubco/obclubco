@@ -129,15 +129,20 @@ A lesson with no questions is complete once the partner marks the video as watch
 
 The design follows obclub.co: near-black background with a faint grid and stars, a floating bordered nav,
 pill badges, white pill buttons, a heavy serif for headlines (Fraunces) and a wide-tracked sans for text (Geist).
+The background stars drift slowly and ease away from the cursor ([`components/Starfield.tsx`](components/Starfield.tsx));
+they stay still for visitors who have reduced motion turned on.
 Colors live in [`app/globals.css`](app/globals.css) (the `@theme` block), fonts in [`app/layout.tsx`](app/layout.tsx),
-and the landing page text in [`app/page.tsx`](app/page.tsx).
+and the sign-in page text in [`components/LoginScreen.tsx`](components/LoginScreen.tsx).
+To change the browser-tab icon, replace [`app/icon.png`](app/icon.png) (square PNG, 512×512 is ideal) and
+[`app/apple-icon.png`](app/apple-icon.png) (180×180).
 
 ## Project layout
 
 ```
 app/
-  page.tsx                         public landing page
-  login/                           email link / code sign-in
+  page.tsx                         first page: partner sign-in (email link / code) + how it works
+  login/                           same sign-in page, kept so older /login/ links still work
+  icon.png, apple-icon.png         browser-tab and home-screen icons
   auth/callback/                   where sign-in links land
   no-access/                       shown to signed-in users who aren't on the allowlist
   (app)/dashboard/                 partner home: courses + progress

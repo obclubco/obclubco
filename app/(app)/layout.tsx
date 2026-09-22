@@ -8,10 +8,10 @@ import { Starfield } from "@/components/Starfield";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <MemberGate>
-      <div className="grain relative flex min-h-dvh flex-col">
-        <Starfield count={70} className="fixed" />
+      <div className="grain relative isolate flex min-h-dvh flex-col">
+        <Starfield density={0.6} />
         <AppHeader />
-        <main className="relative flex-1">{children}</main>
+        <main className="flex-1">{children}</main>
         <Footer />
       </div>
     </MemberGate>
