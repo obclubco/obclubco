@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Arrow, Check } from "@/components/Icons";
+import { Arrow, DrawCheck } from "@/components/Icons";
+import { CountUp } from "@/components/CountUp";
 import type { Question, QuizResult } from "@/lib/types";
 import type { VideoSource } from "@/lib/video";
 
@@ -45,7 +46,7 @@ export function LessonPlayer(props: Props) {
 
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-line bg-black">
+      <div className="enter overflow-hidden rounded-2xl border border-line bg-black shadow-[0_30px_80px_-30px_rgb(255_255_255/0.12)]">
         <div className="aspect-video">
           {!video ? (
             <div className="grid size-full place-items-center text-sm text-mute">Video unavailable.</div>
@@ -68,8 +69,8 @@ export function LessonPlayer(props: Props) {
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
         {watched ? (
-          <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 px-4 py-2 text-sm text-accent">
-            <Check /> Video watched
+          <span className="enter inline-flex items-center gap-2 rounded-full border border-accent/40 px-4 py-2 text-sm text-accent">
+            <DrawCheck /> Video watched
           </span>
         ) : (
           <button onClick={markWatched} disabled={saving} className="btn-primary">
@@ -77,7 +78,7 @@ export function LessonPlayer(props: Props) {
           </button>
         )}
         {complete && (
-          <Link href={nextHref} className="btn-accent">
+          <Link href={nextHref} className="enter btn-accent">
             {nextLabel} <Arrow />
           </Link>
         )}
@@ -150,7 +151,7 @@ function Quiz({
 
   return (
     <section id="quiz" className="mt-12 scroll-mt-24 border-t border-line pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div data-reveal className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Knowledge check</p>
           <h2 className="display mt-3 text-4xl">
@@ -164,19 +165,23 @@ function Quiz({
 
       {result && (
         <div
+          data-reveal
           className={`mt-8 flex flex-col gap-4 rounded-2xl border p-6 sm:flex-row sm:items-center sm:justify-between ${
             result.passed ? "border-good/40 bg-good/5" : "border-bad/40 bg-bad/5"
           }`}
         >
           <div>
-            <p className={`display text-4xl ${result.passed ? "text-good" : "text-bad"}`}>{result.percentage}%</p>
+            <p className={`display flex items-center gap-3 text-4xl ${result.passed ? "text-good" : "text-bad"}`}>
+              <CountUp value={result.percentage} suffix="%" />
+              {result.passed && <DrawCheck className="size-7" />}
+            </p>
             <p className="mt-1 text-sm text-mute">
               {result.correct} of {result.total} correct ·{" "}
               {result.passed ? "Passed — nicely done." : `You need ${result.pass_percentage}% to pass.`}
             </p>
           </div>
           {result.passed ? (
-            <Link href={nextHref} className="btn-accent">
+            <Link href={nextHref} className="enter btn-accent">
               {nextLabel} <Arrow />
             </Link>
           ) : (
@@ -195,7 +200,7 @@ function Quiz({
         {questions.map((q, qi) => {
           const fb = feedback.get(q.id);
           return (
-            <fieldset key={q.id} className="card p-6 sm:p-7" disabled={!!result}>
+            <fieldset key={q.id} data-reveal className="card glow-card p-6 sm:p-7" disabled={!!result}>
               <legend className="sr-only">Question {qi + 1}</legend>
               <p className="text-xs uppercase tracking-widest text-mute">Question {qi + 1}</p>
               <p className="mt-2 text-lg">{q.prompt}</p>
@@ -215,9 +220,9 @@ function Quiz({
                   return (
                     <label
                       key={oi}
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition ${tone} ${
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition duration-300 ${tone} ${
                         result ? "cursor-default" : ""
-                      }`}
+                      } ${isWrongPick ? "shake" : selected || isCorrect ? "pop" : ""}`}
                     >
                       <input
                         type="radio"
@@ -228,13 +233,15 @@ function Quiz({
                         className="size-4 accent-[var(--color-accent)]"
                       />
                       <span className="flex-1">{opt}</span>
-                      {isCorrect && <Check className="size-4 text-good" />}
+                      {isCorrect && <DrawCheck className="size-4 text-good" />}
                     </label>
                   );
                 })}
               </div>
               {fb?.explanation && (
-                <p className="mt-4 border-l-2 border-accent/50 pl-4 text-sm leading-relaxed text-mute">{fb.explanation}</p>
+                <p className="enter mt-4 border-l-2 border-accent/50 pl-4 text-sm leading-relaxed text-mute">
+                  {fb.explanation}
+                </p>
               )}
             </fieldset>
           );

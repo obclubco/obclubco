@@ -5,6 +5,7 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LessonList } from "@/components/LessonList";
 import { LessonPlayer } from "@/components/LessonPlayer";
+import { SplitWords } from "@/components/SplitWords";
 import { useMember } from "@/components/MemberGate";
 import { ErrorState, Loading, NotFoundState } from "@/components/States";
 import { getCourse, getProgress, getQuestions, withState } from "@/lib/data";
@@ -54,7 +55,7 @@ function Lesson() {
 
   return (
     <div className="container-x py-8 sm:py-12">
-      <Link href={`/course/?slug=${slug}`} className="text-sm text-mute hover:text-bone">
+      <Link href={`/course/?slug=${slug}`} className="enter text-sm text-mute transition hover:text-bone">
         ← {found.course.title}
       </Link>
       <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_360px]">
@@ -73,20 +74,27 @@ function Lesson() {
             onProgress={course.reload}
             header={
               <div className="mt-8">
-                <p className="eyebrow">
+                <p className="eyebrow enter" style={{ "--d": "200ms" } as React.CSSProperties}>
                   Lesson {index + 1} of {lessons.length}
                   {lesson.duration_minutes ? ` · ${lesson.duration_minutes} min` : ""}
                 </p>
-                <h1 className="display mt-3 text-4xl sm:text-5xl">{lesson.title}</h1>
+                <h1 className="display mt-3 text-4xl sm:text-5xl">
+                  <SplitWords text={lesson.title} delay={300} step={80} />
+                </h1>
                 {lesson.description && (
-                  <p className="mt-4 max-w-3xl whitespace-pre-line leading-relaxed text-mute">{lesson.description}</p>
+                  <p
+                    className="enter mt-4 max-w-3xl whitespace-pre-line leading-relaxed text-mute"
+                    style={{ "--d": "600ms" } as React.CSSProperties}
+                  >
+                    {lesson.description}
+                  </p>
                 )}
               </div>
             }
           />
         </section>
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <h2 className="mb-4 text-sm text-mute">Course content</h2>
+          <h2 className="enter mb-4 text-sm text-mute">Course content</h2>
           <LessonList courseSlug={slug} lessons={lessons} activeId={lesson.id} />
         </aside>
       </div>

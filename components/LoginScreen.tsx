@@ -2,10 +2,11 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Backdrop } from "@/components/Backdrop";
 import { Footer } from "@/components/Footer";
 import { LoginForm } from "@/components/LoginForm";
 import { NavButton, SiteNav } from "@/components/SiteNav";
-import { Starfield } from "@/components/Starfield";
+import { SplitWords } from "@/components/SplitWords";
 import { usePageTitle } from "@/lib/hooks";
 import { isConfigured, supabase } from "@/lib/supabase";
 
@@ -25,26 +26,29 @@ function safeNext(next: string | null) {
 export function LoginScreen() {
   usePageTitle("Log in");
   return (
-    <div className="grain relative isolate flex min-h-dvh flex-col">
-      <Starfield />
+    <div className="relative isolate flex min-h-dvh flex-col">
+      <Backdrop />
       <SiteNav
         links={[{ href: "#how-it-works", label: "How it works" }]}
         cta={<NavButton href="https://www.obclub.co">Visit OBC</NavButton>}
       />
 
       <main className="flex-1">
-        <section className="container-x flex flex-col items-center pb-24 pt-16 text-center sm:pt-24">
-          <span className="pill">
-            <span className="size-1.5 rounded-full bg-bone" /> The OBC Partnership Program
+        <section className="container-x flex flex-col items-center pb-16 pt-16 text-center sm:pt-24">
+          <span className="pill pill-beam enter" style={{ "--d": "150ms" } as React.CSSProperties}>
+            <span className="dot-ping size-1.5 rounded-full bg-bone" /> The OBC Partnership Program
           </span>
-          <h1 className="display mt-8 max-w-4xl text-[clamp(2.6rem,6.4vw,4.6rem)] font-bold">
-            Learn From Builders. Sell, Scale, and Stand Out.
+          <h1 className="display mt-8 max-w-4xl text-[clamp(2.6rem,6.4vw,4.6rem)] font-bold text-balance">
+            <SplitWords text="Learn From Builders. Sell, Scale, and Stand Out." delay={300} step={75} />
           </h1>
-          <p className="mt-7 max-w-xl text-[15px] leading-7 text-bone/75">
+          <p
+            className="enter mt-7 max-w-xl text-[15px] leading-7 text-bone/75"
+            style={{ "--d": "900ms" } as React.CSSProperties}
+          >
             A private learning space for OBC partners. Sign in with the email the OBC team approved and we&apos;ll
             send you a secure link.
           </p>
-          <div className="mt-10 w-full max-w-lg">
+          <div className="enter mt-10 w-full max-w-lg" style={{ "--d": "1050ms" } as React.CSSProperties}>
             {isConfigured ? (
               <Suspense>
                 <Login />
@@ -55,21 +59,34 @@ export function LoginScreen() {
               </p>
             )}
           </div>
-          <p className="mt-6 max-w-xs text-xs leading-5 text-mute">
+          <p
+            className="enter mt-6 max-w-xs text-xs leading-5 text-mute"
+            style={{ "--d": "1200ms" } as React.CSSProperties}
+          >
             By invitation only. No password needed. Access is granted by the OBC team.
           </p>
+          <a
+            href="#how-it-works"
+            aria-label="How it works"
+            className="enter mt-16 hidden sm:block"
+            style={{ "--d": "1600ms" } as React.CSSProperties}
+          >
+            <span className="scroll-cue" />
+          </a>
         </section>
 
         <section id="how-it-works" className="container-x scroll-mt-24 py-24 sm:py-28">
           <div className="flex flex-col items-center text-center">
-            <span className="pill">
+            <span className="pill" data-reveal>
               <span className="size-1.5 rounded-full bg-bone" /> How it works
             </span>
-            <h2 className="display mt-6 text-4xl sm:text-5xl">Watch. Answer. Unlock.</h2>
+            <h2 className="display mt-6 text-4xl sm:text-5xl">
+              <SplitWords text="Watch. Answer. Unlock." on="scroll" delay={150} step={120} />
+            </h2>
           </div>
           <ol className="mx-auto mt-14 grid max-w-5xl gap-4 md:grid-cols-3">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="card bg-surface/80 p-8 backdrop-blur">
+              <li key={s.title} data-reveal className="card glow-card bg-surface/80 p-8 backdrop-blur">
                 <span className="grid size-10 place-items-center rounded-full border border-line text-sm text-bone">
                   {i + 1}
                 </span>

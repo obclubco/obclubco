@@ -12,7 +12,7 @@ export function LessonList({
   activeId?: string;
 }) {
   return (
-    <ol className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+    <ol className="glow-card glow-inset divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
       {lessons.map((l, i) => {
         const active = l.id === activeId;
         const icon = l.completed ? (
@@ -36,9 +36,9 @@ export function LessonList({
           </div>
         );
         return (
-          <li key={l.id} className={active ? "bg-elevated" : ""}>
+          <li key={l.id} data-reveal className={active ? "bg-elevated" : ""}>
             {l.unlocked ? (
-              <Link href={`/lesson/?course=${courseSlug}&id=${l.id}`} className="block transition hover:bg-elevated">
+              <Link href={`/lesson/?course=${courseSlug}&id=${l.id}`} className="block transition duration-300 hover:bg-elevated">
                 {body}
               </Link>
             ) : (

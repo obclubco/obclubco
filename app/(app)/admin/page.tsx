@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMember } from "@/components/MemberGate";
 import { ErrorState, Loading } from "@/components/States";
 import { getCoursesWithLessons, isLessonComplete } from "@/lib/data";
+import { SplitWords } from "@/components/SplitWords";
 import { useLoad, usePageTitle } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import type { Progress } from "@/lib/types";
@@ -65,15 +66,20 @@ export default function AdminPage() {
 
   return (
     <div className="container-x py-12 sm:py-16">
-      <p className="eyebrow">Admin</p>
-      <h1 className="display mt-4 text-5xl">Partners</h1>
-      <p className="mt-4 max-w-2xl text-sm text-mute">
+      <p className="eyebrow enter">Admin</p>
+      <h1 className="display mt-4 text-5xl">
+        <SplitWords text="Partners" delay={100} />
+      </h1>
+      <p className="enter mt-4 max-w-2xl text-sm text-mute" style={{ "--d": "300ms" } as React.CSSProperties}>
         Partner access and course content are managed in Supabase: add an email to the <code className="text-bone">allowed_emails</code>{" "}
         table to authorise someone, and add rows to <code className="text-bone">courses</code>,{" "}
         <code className="text-bone">lessons</code> and <code className="text-bone">questions</code> to publish content.
       </p>
 
-      <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4">
+      <div
+        data-reveal
+        className="glow-card glow-inset mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4"
+      >
         {[
           ["Authorised", rows.length],
           ["Signed up", rows.filter((r) => r.joined).length],
@@ -87,7 +93,7 @@ export default function AdminPage() {
         ))}
       </div>
 
-      <div className="card mt-10 overflow-x-auto">
+      <div data-reveal className="card mt-10 overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-line text-[11px] uppercase tracking-widest text-mute">
             <tr>
@@ -100,7 +106,7 @@ export default function AdminPage() {
           </thead>
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
-              <tr key={r.email}>
+              <tr key={r.email} className="transition duration-300 hover:bg-elevated/60">
                 <td className="px-5 py-4">
                   <p>{r.full_name ?? "—"}</p>
                   <p className="text-xs text-mute">{r.email}</p>

@@ -129,8 +129,15 @@ A lesson with no questions is complete once the partner marks the video as watch
 
 The design follows obclub.co: near-black background with a faint grid and stars, a floating bordered nav,
 pill badges, white pill buttons, a heavy serif for headlines (Fraunces) and a wide-tracked sans for text (Geist).
-The background stars drift slowly and ease away from the cursor ([`components/Starfield.tsx`](components/Starfield.tsx));
-they stay still for visitors who have reduced motion turned on.
+Motion, all switched off for visitors who have reduced motion turned on:
+- **Background** ([`components/Backdrop.tsx`](components/Backdrop.tsx), [`components/Starfield.tsx`](components/Starfield.tsx)):
+  stars with depth that drift, twinkle, shift with scroll and cursor, move away from the cursor, plus the occasional
+  shooting star; a spotlight and brighter grid lines around the cursor; a slowly breathing top light.
+- **Entrances and scroll reveals** ([`app/globals.css`](app/globals.css), [`components/Motion.tsx`](components/Motion.tsx)):
+  add `className="enter"` (with `style={{ "--d": "200ms" }}` to delay) for on-load entrances, `data-reveal` to reveal
+  on scroll, and [`<SplitWords>`](components/SplitWords.tsx) for headlines that rise in word by word.
+- **Interactions**: buttons glow and nudge their arrow; `glow-card` makes a light follow the cursor around a card;
+  `lift` floats clickable cards; the nav turns solid on scroll; quiz scores count up and check marks draw in.
 Colors live in [`app/globals.css`](app/globals.css) (the `@theme` block), fonts in [`app/layout.tsx`](app/layout.tsx),
 and the sign-in page text in [`components/LoginScreen.tsx`](components/LoginScreen.tsx).
 To change the browser-tab icon, replace [`app/icon.png`](app/icon.png) (square PNG, 512×512 is ideal) and

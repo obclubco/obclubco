@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { LessonList } from "@/components/LessonList";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Arrow } from "@/components/Icons";
+import { SplitWords } from "@/components/SplitWords";
 import { useMember } from "@/components/MemberGate";
 import { ErrorState, Loading, NotFoundState } from "@/components/States";
 import { getCourse, getProgress, withState } from "@/lib/data";
@@ -40,18 +41,29 @@ function Course() {
 
   return (
     <div className="container-x py-12 sm:py-16">
-      <Link href="/dashboard/" className="text-sm text-mute hover:text-bone">
+      <Link href="/dashboard/" className="enter text-sm text-mute transition hover:text-bone">
         ← All courses
       </Link>
       <div className="mt-8 grid gap-12 lg:grid-cols-[1fr_420px]">
         <section>
-          <p className="eyebrow">{CATEGORY_LABEL[course.category]}</p>
-          <h1 className="display mt-4 text-5xl sm:text-7xl">{course.title}</h1>
-          {course.subtitle && <p className="mt-5 max-w-2xl text-lg text-mute">{course.subtitle}</p>}
-          {course.description && (
-            <p className="mt-6 max-w-2xl whitespace-pre-line leading-relaxed text-bone/85">{course.description}</p>
+          <p className="eyebrow enter">{CATEGORY_LABEL[course.category]}</p>
+          <h1 className="display mt-4 text-5xl sm:text-7xl">
+            <SplitWords text={course.title} delay={100} step={90} />
+          </h1>
+          {course.subtitle && (
+            <p className="enter mt-5 max-w-2xl text-lg text-mute" style={{ "--d": "400ms" } as React.CSSProperties}>
+              {course.subtitle}
+            </p>
           )}
-          <dl className="mt-10 grid max-w-lg grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line text-center">
+          {course.description && (
+            <p data-reveal className="mt-6 max-w-2xl whitespace-pre-line leading-relaxed text-bone/85">
+              {course.description}
+            </p>
+          )}
+          <dl
+            data-reveal
+            className="glow-card glow-inset mt-10 grid max-w-lg grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line text-center"
+          >
             {[
               ["Lessons", lessons.length],
               ["Minutes", minutes || "—"],
@@ -63,7 +75,7 @@ function Course() {
               </div>
             ))}
           </dl>
-          <div className="mt-10 max-w-lg">
+          <div data-reveal className="mt-10 max-w-lg">
             <div className="mb-3 flex justify-between text-xs text-mute">
               <span>Your progress</span>
               <span>
@@ -73,13 +85,15 @@ function Course() {
             <ProgressBar value={pct} />
           </div>
           {next && (
-            <Link href={`/lesson/?course=${course.slug}&id=${next.id}`} className="btn-accent mt-10">
+            <Link href={`/lesson/?course=${course.slug}&id=${next.id}`} data-reveal className="btn-accent mt-10">
               {done === 0 ? "Start course" : done === lessons.length ? "Review course" : "Continue"} <Arrow />
             </Link>
           )}
         </section>
         <aside>
-          <h2 className="mb-4 text-sm text-mute">Course content</h2>
+          <h2 data-reveal className="mb-4 text-sm text-mute">
+            Course content
+          </h2>
           {lessons.length ? (
             <LessonList courseSlug={course.slug} lessons={lessons} />
           ) : (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Geist } from "next/font/google";
 import "./globals.css";
+import { Motion } from "@/components/Motion";
 
 // Heavy high-contrast serif for headlines, a wide-tracked sans for everything else — as on obclub.co.
 const serif = Fraunces({ subsets: ["latin"], axes: ["SOFT", "WONK", "opsz"], variable: "--font-serif" });
@@ -15,7 +16,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${serif.variable}`}>
-      <body>{children}</body>
+      <body>
+        {/* Without JavaScript, show everything that would otherwise animate in. */}
+        <noscript>
+          <style>{"[data-reveal],[data-reveal] .word{opacity:1!important}"}</style>
+        </noscript>
+        <Motion />
+        {children}
+      </body>
     </html>
   );
 }

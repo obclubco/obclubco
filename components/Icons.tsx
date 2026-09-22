@@ -13,3 +13,7 @@ export const Play = ({ className = "size-4" }: P) => (
 export const Arrow = ({ className = "size-4" }: P) => (
   <svg viewBox="0 0 24 24" className={className} {...base}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 );
+/** A check mark that draws itself in. */
+export const DrawCheck = ({ className = "size-4" }: P) => (
+  <svg viewBox="0 0 24 24" className={`draw-check ${className}`} {...base}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+);
