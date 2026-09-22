@@ -4,7 +4,8 @@ Private learning site for OB Club partners. Partners sign in with an email the O
 work through video courses on **sales, business building and personal branding**. Every lesson ends with a short quiz,
 and passing it unlocks the next lesson.
 
-Built with **Next.js 16 (App Router)**, **Tailwind CSS 4** and **Supabase** (auth, database and optional video storage).
+Built with **Next.js 16 (App Router, static export)**, **Tailwind CSS 4** and **Supabase** (auth, database and
+optional video storage). The site is plain static files, hosted on GitHub Pages; all access control happens in Supabase.
 
 ---
 
@@ -14,8 +15,8 @@ Built with **Next.js 16 (App Router)**, **Tailwind CSS 4** and **Supabase** (aut
 2. **SQL Editor** → paste all of [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) → **Run**.
 3. Optional: run [`supabase/seed.sql`](supabase/seed.sql) to load an example course (change the emails first).
 4. **Authentication → URL Configuration**
-   - *Site URL*: your live domain, `https://partners.obclub.co` (see step 3)
-   - *Redirect URLs*: add `https://partners.obclub.co/auth/callback` and `http://localhost:3000/auth/callback`
+   - *Site URL*: your live domain, `https://partner.obclub.co` (see step 3)
+   - *Redirect URLs*: add `https://partner.obclub.co/**` and `http://localhost:3000/**`
 5. **Authentication → Email Templates → Magic Link**: so partners can also type a code (handy when they open
    the email on another device), add the code to the template, for example:
    ```html
@@ -33,44 +34,44 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-## 3. Put it live on partners.obclub.co
+## 3. Put it live on partner.obclub.co (GitHub Pages)
 
-The partner site runs as its own app on the subdomain, so the main obclub.co site is not touched.
+The site is fully static, so GitHub Pages hosts it for free. Every push to the `partner` branch rebuilds it
+automatically (see [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)). The main obclub.co site isn't touched.
 
-**a. Deploy the app (Vercel is easiest, free tier is fine)**
-1. [vercel.com/new](https://vercel.com/new) → import the `obclubco/obclubco` GitHub repo (framework: Next.js, settings unchanged).
-2. Before deploying, add the environment variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`: from Supabase → Project Settings → API
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: from the same page
-   - `NEXT_PUBLIC_SITE_URL` = `https://partners.obclub.co`
-3. Deploy. You'll get a temporary `*.vercel.app` address to test with.
+**a. Add the Supabase settings to GitHub**
+Repo → **Settings → Secrets and variables → Actions → Variables tab → New repository variable**:
+- `NEXT_PUBLIC_SUPABASE_URL`: from Supabase → Project Settings → API
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: the `anon` / publishable key from the same page (it's safe to be public; the database rules protect the data)
 
-**b. Attach the subdomain**
-1. Vercel project → **Settings → Domains** → add `partners.obclub.co`.
-2. Vercel shows the DNS record to create. It's normally:
+Then **Actions → Deploy to GitHub Pages → Run workflow** (or push to `partner`). This creates the `gh-pages` branch.
 
-   | Type | Name / Host | Value / Target |
-   | --- | --- | --- |
-   | `CNAME` | `partners` | `cname.vercel-dns.com` |
+**b. Point GitHub Pages at the built site**
+Repo → **Settings → Pages**:
+- *Source*: **Deploy from a branch** → branch **`gh-pages`**, folder **`/ (root)`** → Save
+- *Custom domain*: `partner.obclub.co` → Save
 
-   Use the exact value Vercel shows if it differs (newer projects get a project-specific target).
-3. Add that record wherever obclub.co's DNS is managed (your domain registrar, Cloudflare, or your website
-   builder's domain settings). Only add the new `partners` record; don't change the existing records for
-   `obclub.co` or `www`.
-   - **Cloudflare:** set the record to **DNS only** (grey cloud) so Vercel can issue the SSL certificate.
-4. Wait a few minutes (it can take up to 48 hours) until Vercel shows the domain as **Valid**. HTTPS is set up automatically.
+**c. Add the DNS record** wherever obclub.co's DNS is managed (registrar, Cloudflare, or your website builder).
+Only add this one record; don't change the existing `obclub.co` / `www` records:
 
-**c. Point Supabase at the new address**
+| Type | Name / Host | Value / Target |
+| --- | --- | --- |
+| `CNAME` | `partner` | `obclubco.github.io` |
+
+Cloudflare users: set it to **DNS only** (grey cloud) so GitHub can issue the certificate.
+
+**d. Turn on HTTPS**
+"Domain is not eligible for HTTPS at this time" means GitHub can't see the DNS record yet. Once the record is
+live, GitHub issues the certificate automatically (usually within an hour, occasionally up to 24 hours).
+Then tick **Enforce HTTPS** in Settings → Pages. If the message doesn't go away after the DNS record is in place,
+remove the custom domain in Settings → Pages, save, and add it again. This restarts the certificate request.
+
+**e. Point Supabase at the site**
 Supabase → **Authentication → URL Configuration**:
-- *Site URL*: `https://partners.obclub.co`
-- *Redirect URLs*: `https://partners.obclub.co/auth/callback` (keep `http://localhost:3000/auth/callback` for local development)
+- *Site URL*: `https://partner.obclub.co`
+- *Redirect URLs*: `https://partner.obclub.co/**` (and `http://localhost:3000/**` for local development)
 
-Without this step, sign-in links won't bring partners back to the site.
-
-**d. Optional:** link to the partner site from obclub.co (for example a "Partner login" button to `https://partners.obclub.co/login`).
-
-Other hosts (Netlify, Railway, a server of your own) work the same way: deploy, add the domain in the host's
-settings, then create the DNS record the host gives you.
+Without this, sign-in links won't bring partners back to the site.
 
 ---
 
@@ -136,13 +137,15 @@ Every color and font is in [`app/globals.css`](app/globals.css) (the `@theme` bl
 app/
   page.tsx                         public landing page
   login/                           email link / code sign-in
-  auth/callback, auth/signout      auth routes
+  auth/callback/                   where sign-in links land
   no-access/                       shown to signed-in users who aren't on the allowlist
-  (app)/dashboard                  partner home: courses + progress
-  (app)/courses/[slug]             course overview
-  (app)/courses/[slug]/lessons/…   video + quiz
-  (app)/admin                      partner progress (admins only)
-lib/                               Supabase clients, data queries, video URL handling
+  (app)/dashboard/                 partner home: courses + progress
+  (app)/course/?slug=…             course overview
+  (app)/lesson/?course=…&id=…      video + quiz
+  (app)/admin/                     partner progress (admins only)
+components/                        UI, sign-in gate (MemberGate), lesson player + quiz
+lib/                               Supabase client, data queries, video URL handling
+.github/workflows/deploy.yml       builds and publishes to GitHub Pages
 supabase/migrations/0001_init.sql  database schema, security rules, grading functions
 supabase/seed.sql                  example content
 ```

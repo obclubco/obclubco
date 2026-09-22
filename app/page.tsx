@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { Arrow } from "@/components/Icons";
-import { createClient } from "@/lib/supabase/server";
 
 const TRACKS = [
   {
@@ -28,12 +27,9 @@ const STEPS = [
   { title: "Unlock", body: "Pass the check and the next lesson opens. Track your progress as you go." },
 ];
 
-export default async function Home() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const cta = user ? { href: "/dashboard", label: "Go to your courses" } : { href: "/login", label: "Partner login" };
+export default function Home() {
+  // The login page sends already signed-in partners straight to their courses.
+  const cta = { href: "/login/", label: "Partner login" };
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -41,7 +37,7 @@ export default async function Home() {
         <div className="container-x flex h-20 items-center justify-between">
           <Logo />
           <Link href={cta.href} className="btn-ghost px-5 py-2.5">
-            {user ? "Dashboard" : "Log in"}
+            Log in
           </Link>
         </div>
       </header>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export const metadata = { title: "Access pending" };
 
@@ -16,12 +17,12 @@ export default function NoAccess() {
           This email isn&apos;t currently authorised for the Partnership Program. Reach out to the OB Club team and
           we&apos;ll get you set up.
         </p>
-        <form action="/auth/signout" method="post" className="mt-10 flex gap-3">
-          <button className="btn-ghost">Sign out</button>
+        <div className="mt-10 flex gap-3">
+          <SignOutButton className="btn-ghost" />
           <Link href="/" className="btn-primary">
             Back home
           </Link>
-        </form>
+        </div>
       </div>
     </main>
   );

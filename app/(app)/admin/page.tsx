@@ -1,25 +1,44 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getCoursesWithLessons, isLessonComplete, requireMember } from "@/lib/data";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useMember } from "@/components/MemberGate";
+import { ErrorState, Loading } from "@/components/States";
+import { getCoursesWithLessons, isLessonComplete } from "@/lib/data";
+import { useLoad, usePageTitle } from "@/lib/hooks";
+import { supabase } from "@/lib/supabase";
 import type { Progress } from "@/lib/types";
 
-export const metadata = { title: "Admin" };
+async function loadAdminData() {
+  const sb = supabase();
+  const [allowed, profiles, progress, courses] = await Promise.all([
+    sb.from("allowed_emails").select("email, full_name, is_admin, created_at").order("created_at", { ascending: false }),
+    sb.from("profiles").select("id, email, created_at"),
+    sb.from("lesson_progress").select("user_id, lesson_id, video_completed_at, quiz_passed_at, best_score, attempts, updated_at"),
+    getCoursesWithLessons(),
+  ]);
+  const error = allowed.error ?? profiles.error ?? progress.error;
+  if (error) throw error;
+  return { allowed: allowed.data, profiles: profiles.data, progress: progress.data, courses };
+}
 
 function fmt(d: string | null | undefined) {
   return d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
 }
 
-export default async function AdminPage() {
-  const member = await requireMember();
-  if (!member.isAdmin) redirect("/dashboard");
+export default function AdminPage() {
+  const member = useMember();
+  const router = useRouter();
+  usePageTitle("Admin");
+  useEffect(() => {
+    if (!member.isAdmin) router.replace("/dashboard/");
+  }, [member.isAdmin, router]);
+  const { data, error } = useLoad(loadAdminData, []);
 
-  const supabase = await createClient();
-  const [{ data: allowed }, { data: profiles }, { data: progress }, courses] = await Promise.all([
-    supabase.from("allowed_emails").select("email, full_name, is_admin, created_at").order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, email, created_at"),
-    supabase.from("lesson_progress").select("user_id, lesson_id, video_completed_at, quiz_passed_at, best_score, attempts, updated_at"),
-    getCoursesWithLessons(),
-  ]);
+  if (!member.isAdmin) return <Loading />;
+  if (error) return <ErrorState message={error} />;
+  if (!data) return <Loading />;
+  const { allowed, profiles, progress, courses } = data;
 
   const lessons = courses
     .filter((c) => c.course.is_published)

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { siteOrigin, supabase } from "@/lib/supabase";
 import { Arrow } from "@/components/Icons";
 
 const ERRORS: Record<string, string> = {
@@ -31,11 +31,9 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const supabase = createClient();
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase().auth.signInWithOtp({
       email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` },
+      options: { emailRedirectTo: `${siteOrigin()}/auth/callback/?next=${encodeURIComponent(next)}` },
     });
     setBusy(false);
     if (error) return setError(friendly(error.message));
@@ -46,14 +44,12 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: "email" });
+    const { error } = await supabase().auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: "email" });
     if (error) {
       setBusy(false);
       return setError(friendly(error.message));
     }
     router.replace(next);
-    router.refresh();
   }
 
   if (step === "sent") {

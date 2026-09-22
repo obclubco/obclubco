@@ -17,7 +17,7 @@ export function CourseCard({
   const pct = lessonCount ? (completedCount / lessonCount) * 100 : 0;
   const status = completedCount === 0 ? "Start" : completedCount === lessonCount ? "Review" : "Continue";
   return (
-    <Link href={`/courses/${course.slug}`} className="card group flex flex-col overflow-hidden transition hover:border-bone/30">
+    <Link href={`/course/?slug=${course.slug}`} className="card group flex flex-col overflow-hidden transition hover:border-bone/30">
       <div className="relative aspect-[16/9] overflow-hidden border-b border-line bg-elevated">
         {course.cover_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element

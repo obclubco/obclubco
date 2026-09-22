@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Arrow, Check } from "@/components/Icons";
 import type { Question, QuizResult } from "@/lib/types";
 import type { VideoSource } from "@/lib/video";
@@ -19,11 +18,12 @@ type Props = {
   nextHref: string;
   nextLabel: string;
   header: React.ReactNode;
+  /** Called after progress is saved, so the page can refresh the lesson list. */
+  onProgress: () => void;
 };
 
 export function LessonPlayer(props: Props) {
-  const { lessonId, video, questions, passPercentage, nextHref, nextLabel, header } = props;
-  const router = useRouter();
+  const { lessonId, video, questions, passPercentage, nextHref, nextLabel, header, onProgress } = props;
   const [watched, setWatched] = useState(props.initiallyWatched);
   const [passed, setPassed] = useState(props.initiallyPassed);
   const [saving, setSaving] = useState(false);
@@ -33,11 +33,11 @@ export function LessonPlayer(props: Props) {
     if (watched) return;
     setSaving(true);
     setError(null);
-    const { error } = await createClient().rpc("mark_video_complete", { p_lesson_id: lessonId });
+    const { error } = await supabase().rpc("mark_video_complete", { p_lesson_id: lessonId });
     setSaving(false);
     if (error) return setError("Couldn't save your progress. Please try again.");
     setWatched(true);
-    router.refresh();
+    onProgress();
   }
 
   const hasQuiz = questions.length > 0;
@@ -93,7 +93,7 @@ export function LessonPlayer(props: Props) {
           bestScore={props.bestScore}
           onPassed={() => {
             setPassed(true);
-            router.refresh();
+            onProgress();
           }}
           nextHref={nextHref}
           nextLabel={nextLabel}
@@ -134,7 +134,7 @@ function Quiz({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const { data, error } = await createClient().rpc("submit_quiz", { p_lesson_id: lessonId, p_answers: answers });
+    const { data, error } = await supabase().rpc("submit_quiz", { p_lesson_id: lessonId, p_answers: answers });
     setSubmitting(false);
     if (error) return setError("Couldn't submit your answers. Please try again.");
     const r = data as QuizResult;

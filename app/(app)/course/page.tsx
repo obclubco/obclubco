@@ -1,24 +1,38 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { LessonList } from "@/components/LessonList";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Arrow } from "@/components/Icons";
-import { getCourse, getProgress, requireMember, withState } from "@/lib/data";
+import { useMember } from "@/components/MemberGate";
+import { ErrorState, Loading, NotFoundState } from "@/components/States";
+import { getCourse, getProgress, withState } from "@/lib/data";
+import { useLoad, usePageTitle } from "@/lib/hooks";
 import { CATEGORY_LABEL } from "@/lib/types";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const data = await getCourse((await params).slug);
-  return { title: data?.course.title ?? "Course" };
+export default function CoursePage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <Course />
+    </Suspense>
+  );
 }
 
-export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const member = await requireMember();
-  const [data, progress] = await Promise.all([getCourse(slug), getProgress(member.id)]);
-  if (!data) notFound();
+function Course() {
+  const slug = useSearchParams().get("slug") ?? "";
+  const member = useMember();
+  const { data, error, loading } = useLoad(() => Promise.all([getCourse(slug), getProgress(member.id)]), [slug, member.id]);
+  usePageTitle(data?.[0]?.course.title);
 
-  const { course } = data;
-  const lessons = withState(data.lessons, progress, member.isAdmin);
+  if (error) return <ErrorState message={error} />;
+  if (loading || !data) return <Loading />;
+  const [found, progress] = data;
+  if (!found) return <NotFoundState label="Course not found." />;
+
+  const { course } = found;
+  const lessons = withState(found.lessons, progress, member.isAdmin);
   const done = lessons.filter((l) => l.completed).length;
   const pct = lessons.length ? (done / lessons.length) * 100 : 0;
   const next = lessons.find((l) => l.unlocked && !l.completed) ?? lessons[0];
@@ -26,7 +40,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="container-x py-12 sm:py-16">
-      <Link href="/dashboard" className="text-sm text-mute hover:text-bone">
+      <Link href="/dashboard/" className="text-sm text-mute hover:text-bone">
         ← All courses
       </Link>
       <div className="mt-8 grid gap-12 lg:grid-cols-[1fr_420px]">
@@ -59,7 +73,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
             <ProgressBar value={pct} />
           </div>
           {next && (
-            <Link href={`/courses/${course.slug}/lessons/${next.id}`} className="btn-gold mt-10">
+            <Link href={`/lesson/?course=${course.slug}&id=${next.id}`} className="btn-gold mt-10">
               {done === 0 ? "Start course" : done === lessons.length ? "Review course" : "Continue"} <Arrow />
             </Link>
           )}

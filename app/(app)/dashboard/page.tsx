@@ -1,15 +1,25 @@
+"use client";
+
 import Link from "next/link";
 import { CourseCard } from "@/components/CourseCard";
 import { Arrow } from "@/components/Icons";
-import { getCoursesWithLessons, getProgress, requireMember, withState } from "@/lib/data";
+import { useMember } from "@/components/MemberGate";
+import { ErrorState, Loading } from "@/components/States";
+import { getCoursesWithLessons, getProgress, withState } from "@/lib/data";
+import { useLoad, usePageTitle } from "@/lib/hooks";
 import { CATEGORY_LABEL, type Category } from "@/lib/types";
 
-export const metadata = { title: "Your courses" };
+export default function Dashboard() {
+  const member = useMember();
+  usePageTitle("Your courses");
+  const { data, error, loading } = useLoad(
+    () => Promise.all([getCoursesWithLessons(), getProgress(member.id)]),
+    [member.id],
+  );
+  if (error) return <ErrorState message={error} />;
+  if (loading || !data) return <Loading />;
 
-export default async function Dashboard() {
-  const member = await requireMember();
-  const [courses, progress] = await Promise.all([getCoursesWithLessons(), getProgress(member.id)]);
-
+  const [courses, progress] = data;
   const rows = courses.map(({ course, lessons }) => {
     const state = withState(lessons, progress, member.isAdmin);
     return {
@@ -45,7 +55,7 @@ export default async function Dashboard() {
         </div>
         {resume && resumeLesson && (
           <Link
-            href={`/courses/${resume.course.slug}/lessons/${resumeLesson.id}`}
+            href={`/lesson/?course=${resume.course.slug}&id=${resumeLesson.id}`}
             className="card group flex items-center justify-between gap-4 p-6 transition hover:border-gold/60"
           >
             <div className="min-w-0">

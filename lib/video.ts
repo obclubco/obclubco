@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { supabase } from "@/lib/supabase";
 
 export type VideoSource = { kind: "embed"; src: string } | { kind: "file"; src: string };
 
@@ -10,9 +10,8 @@ export async function resolveVideo(url: string): Promise<VideoSource | null> {
   const trimmed = url.trim();
 
   if (trimmed.startsWith("storage:")) {
-    const supabase = await createClient();
     const path = trimmed.slice("storage:".length).replace(/^\/+/, "");
-    const { data } = await supabase.storage.from("lesson-videos").createSignedUrl(path, 60 * 60 * 4);
+    const { data } = await supabase().storage.from("lesson-videos").createSignedUrl(path, 60 * 60 * 4);
     return data?.signedUrl ? { kind: "file", src: data.signedUrl } : null;
   }
 

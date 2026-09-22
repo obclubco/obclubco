@@ -38,7 +38,7 @@ export function LessonList({
         return (
           <li key={l.id} className={active ? "bg-elevated" : ""}>
             {l.unlocked ? (
-              <Link href={`/courses/${courseSlug}/lessons/${l.id}`} className="block transition hover:bg-elevated">
+              <Link href={`/lesson/?course=${courseSlug}&id=${l.id}`} className="block transition hover:bg-elevated">
                 {body}
               </Link>
             ) : (

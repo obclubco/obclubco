@@ -1,12 +1,10 @@
-import { cache } from "react";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import type { Course, Lesson, LessonWithState, Progress } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
+import type { Course, Lesson, LessonWithState, Progress, Question } from "@/lib/types";
 
 const COURSE_COLUMNS =
   "id, slug, title, subtitle, description, category, cover_image_url, sort_order, pass_percentage, is_published";
 const LESSON_COLUMNS =
-  "id, course_id, title, description, video_url, duration_minutes, sort_order, is_published, questions(count)";
+  "id, course_id, title, description, video_url, duration_minutes, sort_order, is_published, questions(id)";
 
 export type Member = {
   id: string;
@@ -15,29 +13,21 @@ export type Member = {
   isAdmin: boolean;
 };
 
-/** Current signed-in, allowlisted member. Redirects otherwise. */
-export const requireMember = cache(async (): Promise<Member> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+export type CourseWithLessons = { course: Course; lessons: Lesson[] };
 
-  const { data: row } = await supabase
-    .from("allowed_emails")
-    .select("full_name, is_admin")
-    .eq("email", (user.email ?? "").toLowerCase())
-    .maybeSingle();
-  if (!row) redirect("/no-access");
-
-  return { id: user.id, email: user.email ?? "", fullName: row.full_name, isAdmin: row.is_admin };
-});
-
-type LessonRow = Omit<Lesson, "question_count"> & { questions: { count: number }[] };
+type LessonRow = Omit<Lesson, "question_count"> & { questions: { id: string }[] };
+type CourseRow = Course & { lessons: LessonRow[] };
 
 function toLesson(row: LessonRow): Lesson {
   const { questions, ...rest } = row;
-  return { ...rest, question_count: questions?.[0]?.count ?? 0 };
+  return { ...rest, question_count: questions?.length ?? 0 };
+}
+
+function toCourse({ lessons, ...course }: CourseRow): CourseWithLessons {
+  return {
+    course,
+    lessons: (lessons ?? []).map(toLesson).sort((a, b) => a.sort_order - b.sort_order),
+  };
 }
 
 export function isLessonComplete(lesson: Lesson, progress: Progress | null) {
@@ -58,54 +48,59 @@ export function withState(lessons: Lesson[], progress: Progress[], bypassLocks =
   });
 }
 
+/** Signed-in member, or why not: "signed_out" | "not_allowed". */
+export async function loadMember(): Promise<Member | "signed_out" | "not_allowed"> {
+  const {
+    data: { session },
+  } = await supabase().auth.getSession();
+  if (!session) return "signed_out";
+  const email = (session.user.email ?? "").toLowerCase();
+  const { data: row, error } = await supabase()
+    .from("allowed_emails")
+    .select("full_name, is_admin")
+    .eq("email", email)
+    .maybeSingle();
+  if (error) throw error;
+  if (!row) return "not_allowed";
+  return { id: session.user.id, email, fullName: row.full_name, isAdmin: row.is_admin };
+}
+
 export async function getProgress(userId: string): Promise<Progress[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase()
     .from("lesson_progress")
     .select("lesson_id, video_completed_at, quiz_passed_at, best_score, attempts")
     .eq("user_id", userId);
+  if (error) throw error;
   return data ?? [];
 }
 
-export async function getCoursesWithLessons() {
-  const supabase = await createClient();
-  const { data: courses } = await supabase
+export async function getCoursesWithLessons(): Promise<CourseWithLessons[]> {
+  const { data, error } = await supabase()
     .from("courses")
     .select(`${COURSE_COLUMNS}, lessons(${LESSON_COLUMNS})`)
     .order("sort_order")
     .order("created_at");
-
-  return (courses ?? []).map((c) => {
-    const { lessons, ...course } = c as Course & { lessons: LessonRow[] };
-    return {
-      course: course as Course,
-      lessons: (lessons ?? []).map(toLesson).sort((a, b) => a.sort_order - b.sort_order),
-    };
-  });
+  if (error) throw error;
+  return ((data ?? []) as unknown as CourseRow[]).map(toCourse);
 }
 
-export async function getCourse(slug: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
+export async function getCourse(slug: string): Promise<CourseWithLessons | null> {
+  const { data, error } = await supabase()
     .from("courses")
     .select(`${COURSE_COLUMNS}, lessons(${LESSON_COLUMNS})`)
     .eq("slug", slug)
     .maybeSingle();
-  if (!data) return null;
-  const { lessons, ...course } = data as Course & { lessons: LessonRow[] };
-  return {
-    course: course as Course,
-    lessons: (lessons ?? []).map(toLesson).sort((a, b) => a.sort_order - b.sort_order),
-  };
+  if (error) throw error;
+  return data ? toCourse(data as unknown as CourseRow) : null;
 }
 
-export async function getQuestions(lessonId: string) {
-  const supabase = await createClient();
+export async function getQuestions(lessonId: string): Promise<Question[]> {
   // Only these columns are granted — the answer key stays in the database.
-  const { data } = await supabase
+  const { data, error } = await supabase()
     .from("questions")
     .select("id, lesson_id, prompt, options, sort_order")
     .eq("lesson_id", lessonId)
     .order("sort_order");
+  if (error) throw error;
   return data ?? [];
 }

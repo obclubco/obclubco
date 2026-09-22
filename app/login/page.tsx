@@ -1,21 +1,18 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+"use client";
+
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { usePageTitle } from "@/lib/hooks";
+import { isConfigured, supabase } from "@/lib/supabase";
 import { LoginForm } from "./LoginForm";
-import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Log in" };
+function safeNext(next: string | null) {
+  return next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard/";
+}
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
-  const { next, error } = await searchParams;
-  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) redirect(safeNext);
-
+export default function LoginPage() {
+  usePageTitle("Log in");
   return (
     <main className="grain flex min-h-dvh flex-col">
       <div className="container-x flex h-20 items-center">
@@ -28,9 +25,31 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <p className="mt-4 text-center text-sm text-mute">
             Enter the email the OB Club team approved. We&apos;ll send you a secure sign-in link — no password needed.
           </p>
-          <LoginForm next={safeNext} initialError={error} />
+          {isConfigured ? (
+            <Suspense>
+              <Login />
+            </Suspense>
+          ) : (
+            <p className="card mt-10 p-6 text-center text-sm text-bad">
+              The site isn&apos;t connected to Supabase yet. Add the Supabase settings and redeploy.
+            </p>
+          )}
         </div>
       </div>
     </main>
   );
+}
+
+function Login() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const next = safeNext(params.get("next"));
+
+  useEffect(() => {
+    supabase()
+      .auth.getSession()
+      .then(({ data }) => data.session && router.replace(next));
+  }, [next, router]);
+
+  return <LoginForm next={next} initialError={params.get("error") ?? undefined} />;
 }
