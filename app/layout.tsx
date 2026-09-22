@@ -6,6 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://partners.obclub.co"),
   title: { default: "OBC Partners", template: "%s · OBC Partners" },
   description: "The OB Club Partnership Program — learn sales, business building and personal branding.",
 };

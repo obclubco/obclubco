@@ -14,7 +14,7 @@ Built with **Next.js 16 (App Router)**, **Tailwind CSS 4** and **Supabase** (aut
 2. **SQL Editor** → paste all of [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) → **Run**.
 3. Optional: run [`supabase/seed.sql`](supabase/seed.sql) to load an example course (change the emails first).
 4. **Authentication → URL Configuration**
-   - *Site URL*: your live domain, e.g. `https://partners.obclub.co`
+   - *Site URL*: your live domain, `https://partners.obclub.co` (see step 3)
    - *Redirect URLs*: add `https://partners.obclub.co/auth/callback` and `http://localhost:3000/auth/callback`
 5. **Authentication → Email Templates → Magic Link**: so partners can also type a code (handy when they open
    the email on another device), add the code to the template, for example:
@@ -33,7 +33,44 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-Deploy to Vercel (or any Node host) with the same three environment variables. Set `NEXT_PUBLIC_SITE_URL` to the live URL.
+## 3. Put it live on partners.obclub.co
+
+The partner site runs as its own app on the subdomain, so the main obclub.co site is not touched.
+
+**a. Deploy the app (Vercel is easiest, free tier is fine)**
+1. [vercel.com/new](https://vercel.com/new) → import the `obclubco/obclubco` GitHub repo (framework: Next.js, settings unchanged).
+2. Before deploying, add the environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`: from Supabase → Project Settings → API
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: from the same page
+   - `NEXT_PUBLIC_SITE_URL` = `https://partners.obclub.co`
+3. Deploy. You'll get a temporary `*.vercel.app` address to test with.
+
+**b. Attach the subdomain**
+1. Vercel project → **Settings → Domains** → add `partners.obclub.co`.
+2. Vercel shows the DNS record to create. It's normally:
+
+   | Type | Name / Host | Value / Target |
+   | --- | --- | --- |
+   | `CNAME` | `partners` | `cname.vercel-dns.com` |
+
+   Use the exact value Vercel shows if it differs (newer projects get a project-specific target).
+3. Add that record wherever obclub.co's DNS is managed (your domain registrar, Cloudflare, or your website
+   builder's domain settings). Only add the new `partners` record; don't change the existing records for
+   `obclub.co` or `www`.
+   - **Cloudflare:** set the record to **DNS only** (grey cloud) so Vercel can issue the SSL certificate.
+4. Wait a few minutes (it can take up to 48 hours) until Vercel shows the domain as **Valid**. HTTPS is set up automatically.
+
+**c. Point Supabase at the new address**
+Supabase → **Authentication → URL Configuration**:
+- *Site URL*: `https://partners.obclub.co`
+- *Redirect URLs*: `https://partners.obclub.co/auth/callback` (keep `http://localhost:3000/auth/callback` for local development)
+
+Without this step, sign-in links won't bring partners back to the site.
+
+**d. Optional:** link to the partner site from obclub.co (for example a "Partner login" button to `https://partners.obclub.co/login`).
+
+Other hosts (Netlify, Railway, a server of your own) work the same way: deploy, add the domain in the host's
+settings, then create the DNS record the host gives you.
 
 ---
 
