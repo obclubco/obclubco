@@ -71,7 +71,7 @@ Supabase → **Authentication → URL Configuration** → *Site URL*: `https://p
 | --- | --- |
 | **Add a partner** | 1. **Table Editor → `allowed_emails`** → insert a row: their email in **lowercase**, optional `full_name`.<br>2. **Authentication → Users → Add user → Create new user**: same email, a password, tick **Auto Confirm User**.<br>3. Send them the email and password. They log in at partner.obclub.co. |
 | **Make someone an admin** | Set `is_admin = true` on their `allowed_emails` row. Admins see the **Admin** page (partner progress) and can preview draft courses. |
-| **Change a password** | **Authentication → Users** → the user's menu → **Update password** (or delete and re-create the user). |
+| **Change a password** | **SQL Editor** → run `update auth.users set encrypted_password = extensions.crypt('NEW-PASSWORD', extensions.gen_salt('bf')) where email = 'their@email.com';` (or delete the user under Authentication → Users and create them again). |
 | **Revoke access** | Delete their `allowed_emails` row. They lose access to all content immediately (delete the user under Authentication → Users too, to remove the account). |
 
 Order matters: add the `allowed_emails` row **before** creating the user. The database refuses to create an account
