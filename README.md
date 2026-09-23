@@ -13,10 +13,12 @@ optional video storage). The site is plain static files, hosted on GitHub Pages;
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. **SQL Editor** → paste all of [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) → **Run**.
-3. Optional: run [`supabase/seed.sql`](supabase/seed.sql) to load an example course (change the emails first).
-4. **Authentication → Sign In / Providers**: keep **Email** enabled and turn **off** "Allow new users to sign up",
+3. Run [`supabase/migrations/0002_public_pages.sql`](supabase/migrations/0002_public_pages.sql) the same way
+   (powers the public About and Coaches pages).
+4. Optional: run [`supabase/seed.sql`](supabase/seed.sql) to load an example course (change the emails first).
+5. **Authentication → Sign In / Providers**: keep **Email** enabled and turn **off** "Allow new users to sign up",
    so only the OBC team can create accounts (step "Managing partners" below).
-5. **Authentication → URL Configuration** → *Site URL*: `https://partner.obclub.co`.
+6. **Authentication → URL Configuration** → *Site URL*: `https://partner.obclub.co`.
 
 ## 2. Run the site
 
@@ -105,6 +107,20 @@ All content lives in three tables. Add rows in the Table Editor (or with SQL, se
 
 A lesson with no questions is complete once the partner marks the video as watched.
 
+## Public pages: About and Coaches
+
+- **About** (`/about/`) shows a summary of every **published** course automatically: title, subtitle,
+  description, number of lessons and total minutes. Nothing about lessons, videos or quiz answers is public.
+- **Coaches** (`/coaches/`) lists rows from the **`coaches`** table (Table Editor → `coaches`):
+  - `name`, `role` (e.g. "Founder & Sales Coach"), `photo_url` (square image link; shown in black and white,
+    in colour on hover), `bio` (short intro)
+  - `experience`: longer text, line breaks are kept
+  - `highlights`: short badges, e.g. `{"12 years in B2B sales","€10M+ closed"}`
+  - `portfolio`: links as JSON, e.g. `[{"label": "LinkedIn", "url": "https://…"}, {"label": "Case study", "url": "https://…"}]`
+  - `sort_order` for the order, `is_published` to hide someone without deleting them
+
+  There's a ready-to-edit example at the bottom of `0002_public_pages.sql`.
+
 ## How it works
 
 - **Log in**: email + password (Supabase Auth). Accounts are created by the OBC team; there is no public sign-up.
@@ -138,6 +154,7 @@ To change the browser-tab icon, replace [`app/icon.png`](app/icon.png) (square P
 ```
 app/
   page.tsx                         first page: opening intro + partner log in (email + password)
+  about/, coaches/                 public pages: course summary, coaches' experience and portfolio
   login/                           same log in page, kept so older /login/ links still work
   icon.png, apple-icon.png         browser-tab and home-screen icons
   no-access/                       shown to signed-in users who aren't on the allowlist

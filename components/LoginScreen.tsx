@@ -23,6 +23,10 @@ function safeNext(next: string | null) {
 /** The site's first page: partner log in, styled like the obclub.co hero, with an opening intro. */
 export function LoginScreen() {
   usePageTitle("Log in");
+  // Drop leftover anchors such as #how-it-works (from an older version of the page) from the address bar.
+  useEffect(() => {
+    if (window.location.hash) history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, []);
   return (
     <div
       className="relative isolate flex min-h-dvh flex-col"
@@ -30,7 +34,7 @@ export function LoginScreen() {
     >
       <Intro />
       <Backdrop stars={1.2} burst={INTRO - 250} />
-      <SiteNav links={[]} cta={<NavButton href="https://www.obclub.co">Visit OBC</NavButton>} />
+      <SiteNav cta={<NavButton href="https://www.obclub.co">Visit OBC</NavButton>} />
 
       <main className="flex flex-1 flex-col">
         <section className="container-x flex flex-1 flex-col items-center justify-center pb-20 pt-12 text-center sm:pt-16">
