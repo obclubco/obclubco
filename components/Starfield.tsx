@@ -14,25 +14,31 @@ type Star = {
   a: number; // base opacity
   tw: number; // twinkle speed (0 = steady)
   ph: number; // twinkle phase
+  born: number; // when the star starts flying out from the centre (opening burst); 0 once settled
 };
 
 type Meteor = { x: number; y: number; vx: number; vy: number; age: number; life: number; len: number };
 
 const DRIFT_MIN = 2; // px/s — stars float slowly
 const DRIFT_MAX = 7;
-const REPEL_RADIUS = 150; // stars within this distance of the cursor move away…
-const REPEL_DISTANCE = 26; // …by at most this many px
-const EASE = 3; // how quickly stars glide away and back (per second)
+const REPEL_RADIUS = 210; // stars within this distance of the cursor react…
+const REPEL_DISTANCE = 64; // …pushed away by up to this many px,
+const SWIRL = 0.45; // …swirling around it a little,
+const WAKE = 0.09; // …and dragged along behind fast cursor movement
+const GLOW = 0.9; // stars near the cursor brighten and grow by up to this much
+const EASE = 4; // how quickly stars glide away and back (per second)
+const BURST_MS = 1700; // opening burst: how long each star takes to fly out
 const SCROLL_PARALLAX = 0.22; // near stars move this fraction of the scroll distance
 const MOUSE_PARALLAX = 0.018; // near stars shift this fraction of the cursor's distance from the centre
 const METEOR_EVERY = [4000, 9000]; // ms between shooting stars
 
 /**
  * Background star field, as on obclub.co: slow drift with depth, gentle twinkle, scroll and cursor
- * parallax, stars that ease away from the cursor, and the occasional shooting star.
+ * parallax, stars that swirl away from the cursor (brightening as it passes), the occasional shooting
+ * star, and an optional opening burst from the centre.
  * Static for visitors who prefer reduced motion. Rendered by <Backdrop>.
  */
-export function Starfield({ density = 1 }: { density?: number }) {
+export function Starfield({ density = 1, burst }: { density?: number; burst?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -47,6 +53,10 @@ export function Starfield({ density = 1 }: { density?: number }) {
     let meteor: Meteor | null = null;
     let nextMeteor = performance.now() + 2500;
     let pointer: { x: number; y: number } | null = null;
+    let pvx = 0; // smoothed cursor velocity, px/s
+    let pvy = 0;
+    let lastMove = 0;
+    const burstFrom = burst != null && !reduceMotion ? performance.now() + burst : 0;
     let px = 0; // eased cursor parallax
     let py = 0;
     let raf = 0;
@@ -68,6 +78,7 @@ export function Starfield({ density = 1 }: { density?: number }) {
         a: (0.25 + Math.random() * 0.55) * (0.55 + z * 0.45),
         tw: Math.random() < 0.4 ? 0.5 + Math.random() * 1.2 : 0,
         ph: Math.random() * Math.PI * 2,
+        born: burstFrom && !stars.length ? burstFrom + Math.random() * 450 : 0,
       };
     };
 
@@ -123,6 +134,9 @@ export function Starfield({ density = 1 }: { density?: number }) {
       const targetPy = pointer ? -(pointer.y - h / 2) * MOUSE_PARALLAX : 0;
       px += (targetPx - px) * k;
       py += (targetPy - py) * k;
+      const decay = Math.exp(-dt * 5);
+      pvx *= decay;
+      pvy *= decay;
 
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = "#fff";
@@ -132,9 +146,21 @@ export function Starfield({ density = 1 }: { density?: number }) {
           s.x = wrap(s.x + s.vx * dt, w);
           s.y = wrap(s.y + s.vy * dt, h);
         }
-        const hx = wrap(s.x + px * s.z, w);
-        const hy = wrap(s.y - scroll * SCROLL_PARALLAX * s.z + py * s.z, h);
+        let hx = wrap(s.x + px * s.z, w);
+        let hy = wrap(s.y - scroll * SCROLL_PARALLAX * s.z + py * s.z, h);
 
+        // Opening burst: fly out from the centre of the screen.
+        let appear = 1;
+        if (s.born) {
+          const p = Math.min(Math.max((now - s.born) / BURST_MS, 0), 1);
+          if (p >= 1) s.born = 0;
+          const e = 1 - (1 - p) ** 4;
+          hx = w / 2 + (hx - w / 2) * e;
+          hy = h / 2 + (hy - h / 2) * e;
+          appear = Math.min(p * 3, 1);
+        }
+
+        let near = 0;
         if (!reduceMotion) {
           let tx = 0;
           let ty = 0;
@@ -143,18 +169,24 @@ export function Starfield({ density = 1 }: { density?: number }) {
             const dy = hy - pointer.y;
             const dist = Math.hypot(dx, dy);
             if (dist < REPEL_RADIUS) {
-              const push = (1 - dist / REPEL_RADIUS) ** 2 * REPEL_DISTANCE * (0.6 + s.z * 0.4);
-              tx = dist > 0.01 ? (dx / dist) * push : push;
-              ty = dist > 0.01 ? (dy / dist) * push : 0;
+              const f = (1 - dist / REPEL_RADIUS) ** 2;
+              const push = f * REPEL_DISTANCE * (0.6 + s.z * 0.4);
+              const ux = dist > 0.01 ? dx / dist : 1;
+              const uy = dist > 0.01 ? dy / dist : 0;
+              tx = ux * push - uy * push * SWIRL + Math.max(-60, Math.min(60, pvx * WAKE * f));
+              ty = uy * push + ux * push * SWIRL + Math.max(-60, Math.min(60, pvy * WAKE * f));
             }
+            const d2 = Math.hypot(hx + s.ox - pointer.x, hy + s.oy - pointer.y);
+            near = d2 < REPEL_RADIUS ? 1 - d2 / REPEL_RADIUS : 0;
           }
           s.ox += (tx - s.ox) * k;
           s.oy += (ty - s.oy) * k;
         }
 
-        ctx.globalAlpha = s.tw && !reduceMotion ? s.a * (0.55 + 0.45 * Math.sin(t * s.tw + s.ph)) : s.a;
+        const base = s.tw && !reduceMotion ? s.a * (0.55 + 0.45 * Math.sin(t * s.tw + s.ph)) : s.a;
+        ctx.globalAlpha = Math.min(1, base + (1 - base) * near * GLOW) * appear;
         ctx.beginPath();
-        ctx.arc(hx + s.ox, hy + s.oy, s.r, 0, Math.PI * 2);
+        ctx.arc(hx + s.ox, hy + s.oy, s.r * (1 + near * GLOW), 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -200,6 +232,13 @@ export function Starfield({ density = 1 }: { density?: number }) {
     };
 
     const onMove = (e: PointerEvent) => {
+      const now = performance.now();
+      if (pointer && now > lastMove) {
+        const dtm = Math.max((now - lastMove) / 1000, 0.008);
+        pvx = pvx * 0.7 + ((e.clientX - pointer.x) / dtm) * 0.3;
+        pvy = pvy * 0.7 + ((e.clientY - pointer.y) / dtm) * 0.3;
+      }
+      lastMove = now;
       pointer = { x: e.clientX, y: e.clientY };
     };
     const onLeave = (e: MouseEvent) => {
@@ -232,7 +271,7 @@ export function Starfield({ density = 1 }: { density?: number }) {
       window.removeEventListener("mouseout", onLeave);
       window.removeEventListener("blur", clearPointer);
     };
-  }, [density]);
+  }, [density, burst]);
 
   return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 -z-10 h-full w-full" />;
 }

@@ -2,49 +2,31 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { siteOrigin, supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { Arrow } from "@/components/Icons";
 
-const ERRORS: Record<string, string> = {
-  not_authorized: "This email isn't on the partner list yet. Contact the OB Club team to get access.",
-  link_invalid: "That sign-in link is invalid or has expired. Request a new one below.",
-};
-
 function friendly(message: string) {
-  if (/EMAIL_NOT_AUTHORIZED|Database error saving new user|Signups not allowed/i.test(message)) {
-    return ERRORS.not_authorized;
-  }
-  if (/rate limit|security purposes/i.test(message)) return "Too many attempts. Please wait a minute and try again.";
-  if (/expired|invalid/i.test(message)) return "That code is invalid or has expired.";
+  if (/invalid login credentials/i.test(message)) return "Wrong email or password.";
+  if (/email not confirmed/i.test(message)) return "Your account isn't activated yet. Contact the OBC team.";
+  if (/rate limit|too many|security purposes/i.test(message)) return "Too many attempts. Please wait a minute and try again.";
+  if (/fetch|network/i.test(message)) return "Couldn't reach the server. Check your connection and try again.";
   return message;
 }
 
-export function LoginForm({ next, initialError }: { next: string; initialError?: string }) {
+/** Email + password log in. Accounts are created by the OBC team in Supabase. */
+export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "sent">("email");
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(initialError ? (ERRORS[initialError] ?? initialError) : null);
+  const [error, setError] = useState<string | null>(null);
 
-  async function sendLink(e: React.FormEvent) {
+  async function logIn(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await supabase().auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: `${siteOrigin()}/auth/callback/?next=${encodeURIComponent(next)}` },
-    });
-    setBusy(false);
-    if (error) return setError(friendly(error.message));
-    setStep("sent");
-  }
-
-  async function verifyCode(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const { error } = await supabase().auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: "email" });
+    const { error } = await supabase().auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     if (error) {
       setBusy(false);
       return setError(friendly(error.message));
@@ -52,66 +34,54 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     router.replace(next);
   }
 
-  if (step === "sent") {
-    return (
-      <div className="card bg-surface/80 p-6 backdrop-blur sm:p-8">
-        <p className="text-center text-sm">
-          Check <span className="text-accent">{email}</span> — we sent you a sign-in link.
-        </p>
-        <form onSubmit={verifyCode} className="mt-6 space-y-3">
-          <label htmlFor="code" className="block text-center text-xs text-mute">
-            Or enter the code from the email
-          </label>
-          <input
-            id="code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={10}
-            placeholder="123456"
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            className="input text-center font-mono tracking-[0.5em]"
-          />
-          <button className="btn-primary w-full" disabled={busy || code.length < 6}>
-            {busy ? "Verifying…" : "Sign in"}
-          </button>
-        </form>
-        {error && <p className="mt-4 text-center text-sm text-bad">{error}</p>}
-        <button
-          onClick={() => {
-            setStep("email");
-            setCode("");
-            setError(null);
-          }}
-          className="mt-6 w-full text-center text-xs text-mute hover:text-bone"
-        >
-          Use a different email
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={sendLink}>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <label htmlFor="email" className="sr-only">
-          Email
-        </label>
+    <form onSubmit={logIn} className="card glow-card mx-auto w-full max-w-sm bg-surface/70 p-6 text-left backdrop-blur-md sm:p-7">
+      <label htmlFor="email" className="block text-xs text-mute">
+        Email
+      </label>
+      <input
+        id="email"
+        type="email"
+        required
+        autoComplete="email"
+        placeholder="you@company.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="input mt-2"
+      />
+
+      <label htmlFor="password" className="mt-5 block text-xs text-mute">
+        Password
+      </label>
+      <div className="relative mt-2">
         <input
-          id="email"
-          type="email"
+          id="password"
+          type={show ? "text" : "password"}
           required
-          autoComplete="email"
-          placeholder="you@company.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="input flex-1"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="input pr-16"
         />
-        <button className="btn-primary" disabled={busy}>
-          {busy ? "Sending…" : "Send sign-in link"} {!busy && <Arrow />}
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-widest text-mute transition hover:text-bone"
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          {show ? "Hide" : "Show"}
         </button>
       </div>
-      {error && <p className="pt-4 text-center text-sm text-bad">{error}</p>}
+
+      <button className="btn-primary mt-6 w-full" disabled={busy}>
+        {busy ? "Logging in…" : "Log in"} {!busy && <Arrow />}
+      </button>
+      {error && (
+        <p role="alert" className="enter mt-4 text-center text-sm text-bad">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

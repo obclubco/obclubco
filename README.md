@@ -1,6 +1,6 @@
 # OBC Partnership Program
 
-Private learning site for OB Club partners. Partners sign in with an email the OBC team has approved, then
+Private learning site for OB Club partners. Partners log in with an email and password the OBC team creates for them, then
 work through video courses on **sales, business building and personal branding**. Every lesson ends with a short quiz,
 and passing it unlocks the next lesson.
 
@@ -14,17 +14,9 @@ optional video storage). The site is plain static files, hosted on GitHub Pages;
 1. Create a project at [supabase.com](https://supabase.com).
 2. **SQL Editor** → paste all of [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) → **Run**.
 3. Optional: run [`supabase/seed.sql`](supabase/seed.sql) to load an example course (change the emails first).
-4. **Authentication → URL Configuration**
-   - *Site URL*: your live domain, `https://partner.obclub.co` (see step 3)
-   - *Redirect URLs*: add `https://partner.obclub.co/**` and `http://localhost:3000/**`
-5. **Authentication → Email Templates → Magic Link**: so partners can also type a code (handy when they open
-   the email on another device), add the code to the template, for example:
-   ```html
-   <h2>Your OB Club Partners sign-in</h2>
-   <p><a href="{{ .ConfirmationURL }}">Sign in</a></p>
-   <p>Or enter this code: <strong>{{ .Token }}</strong></p>
-   ```
-6. For real email volume, set up custom SMTP (**Authentication → Emails → SMTP**). Supabase's built-in sender is rate-limited.
+4. **Authentication → Sign In / Providers**: keep **Email** enabled and turn **off** "Allow new users to sign up",
+   so only the OBC team can create accounts (step "Managing partners" below).
+5. **Authentication → URL Configuration** → *Site URL*: `https://partner.obclub.co`.
 
 ## 2. Run the site
 
@@ -67,11 +59,7 @@ Then tick **Enforce HTTPS** in Settings → Pages. If the message doesn't go awa
 remove the custom domain in Settings → Pages, save, and add it again. This restarts the certificate request.
 
 **e. Point Supabase at the site**
-Supabase → **Authentication → URL Configuration**:
-- *Site URL*: `https://partner.obclub.co`
-- *Redirect URLs*: `https://partner.obclub.co/**` (and `http://localhost:3000/**` for local development)
-
-Without this, sign-in links won't bring partners back to the site.
+Supabase → **Authentication → URL Configuration** → *Site URL*: `https://partner.obclub.co`.
 
 ---
 
@@ -79,11 +67,13 @@ Without this, sign-in links won't bring partners back to the site.
 
 | Task | How |
 | --- | --- |
-| **Authorise a partner** | Add a row to `allowed_emails` (email in **lowercase**, optional `full_name`). They can sign in right away. |
-| **Make someone an admin** | Set `is_admin = true`. Admins see the **Admin** page (partner progress) and can preview draft courses. |
-| **Revoke access** | Delete their `allowed_emails` row. They lose access to all content immediately. |
+| **Add a partner** | 1. **Table Editor → `allowed_emails`** → insert a row: their email in **lowercase**, optional `full_name`.<br>2. **Authentication → Users → Add user → Create new user**: same email, a password, tick **Auto Confirm User**.<br>3. Send them the email and password. They log in at partner.obclub.co. |
+| **Make someone an admin** | Set `is_admin = true` on their `allowed_emails` row. Admins see the **Admin** page (partner progress) and can preview draft courses. |
+| **Change a password** | **Authentication → Users** → the user's menu → **Update password** (or delete and re-create the user). |
+| **Revoke access** | Delete their `allowed_emails` row. They lose access to all content immediately (delete the user under Authentication → Users too, to remove the account). |
 
-Anyone whose email isn't on the list can't create an account. The database blocks it, not only the website.
+Order matters: add the `allowed_emails` row **before** creating the user. The database refuses to create an account
+for any email that isn't on the list (you'd see "Database error creating new user").
 
 ## Adding courses
 
@@ -117,7 +107,7 @@ A lesson with no questions is complete once the partner marks the video as watch
 
 ## How it works
 
-- **Sign-in**: passwordless email link or 6-digit code (Supabase Auth).
+- **Log in**: email + password (Supabase Auth). Accounts are created by the OBC team; there is no public sign-up.
 - **Lesson flow**: watch the video → "I've watched it" (uploaded videos mark themselves as watched when they finish) →
   answer the questions → the score is checked in the database → pass to unlock the next lesson.
   Partners can retake quizzes; the best score is kept.
@@ -139,7 +129,7 @@ Motion, all switched off for visitors who have reduced motion turned on:
 - **Interactions**: buttons glow and nudge their arrow; `glow-card` makes a light follow the cursor around a card;
   `lift` floats clickable cards; the nav turns solid on scroll; quiz scores count up and check marks draw in.
 Colors live in [`app/globals.css`](app/globals.css) (the `@theme` block), fonts in [`app/layout.tsx`](app/layout.tsx),
-and the sign-in page text in [`components/LoginScreen.tsx`](components/LoginScreen.tsx).
+and the log in page text in [`components/LoginScreen.tsx`](components/LoginScreen.tsx).
 To change the browser-tab icon, replace [`app/icon.png`](app/icon.png) (square PNG, 512×512 is ideal) and
 [`app/apple-icon.png`](app/apple-icon.png) (180×180).
 
@@ -147,16 +137,15 @@ To change the browser-tab icon, replace [`app/icon.png`](app/icon.png) (square P
 
 ```
 app/
-  page.tsx                         first page: partner sign-in (email link / code) + how it works
-  login/                           same sign-in page, kept so older /login/ links still work
+  page.tsx                         first page: opening intro + partner log in (email + password)
+  login/                           same log in page, kept so older /login/ links still work
   icon.png, apple-icon.png         browser-tab and home-screen icons
-  auth/callback/                   where sign-in links land
   no-access/                       shown to signed-in users who aren't on the allowlist
   (app)/dashboard/                 partner home: courses + progress
   (app)/course/?slug=…             course overview
   (app)/lesson/?course=…&id=…      video + quiz
   (app)/admin/                     partner progress (admins only)
-components/                        UI, sign-in gate (MemberGate), lesson player + quiz
+components/                        UI, log in gate (MemberGate), lesson player + quiz
 lib/                               Supabase client, data queries, video URL handling
 .github/workflows/deploy.yml       builds and publishes to GitHub Pages
 supabase/migrations/0001_init.sql  database schema, security rules, grading functions

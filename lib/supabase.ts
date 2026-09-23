@@ -11,11 +11,7 @@ let client: SupabaseClient | null = null;
 export function supabase() {
   if (!isConfigured) throw new Error("Supabase is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY).");
   client ??= createClient(url!, key!, {
-    auth: { flowType: "pkce", persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    auth: { persistSession: true, autoRefreshToken: true },
   });
   return client;
-}
-
-export function siteOrigin() {
-  return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
 }
