@@ -12,7 +12,7 @@ import { useEffect } from "react";
 export function Motion() {
   useEffect(() => {
     const root = document.documentElement;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = false; // Animations always run, even when the device asks for reduced motion.
 
     // Scroll reveals
     const io = new IntersectionObserver(

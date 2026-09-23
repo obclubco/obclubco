@@ -119,7 +119,7 @@ A lesson with no questions is complete once the partner marks the video as watch
 
 The design follows obclub.co: near-black background with a faint grid and stars, a floating bordered nav,
 pill badges, white pill buttons, a heavy serif for headlines (Fraunces) and a wide-tracked sans for text (Geist).
-Motion, all switched off for visitors who have reduced motion turned on:
+Motion (always on, including for visitors whose device asks for reduced motion):
 - **Background** ([`components/Backdrop.tsx`](components/Backdrop.tsx), [`components/Starfield.tsx`](components/Starfield.tsx)):
   stars with depth that drift, twinkle, shift with scroll and cursor, move away from the cursor, plus the occasional
   shooting star; a spotlight and brighter grid lines around the cursor; a slowly breathing top light.

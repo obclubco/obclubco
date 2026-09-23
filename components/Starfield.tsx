@@ -36,7 +36,7 @@ const METEOR_EVERY = [4000, 9000]; // ms between shooting stars
  * Background star field, as on obclub.co: slow drift with depth, gentle twinkle, scroll and cursor
  * parallax, stars that swirl away from the cursor (brightening as it passes), the occasional shooting
  * star, and an optional opening burst from the centre.
- * Static for visitors who prefer reduced motion. Rendered by <Backdrop>.
+ * Rendered by <Backdrop>.
  */
 export function Starfield({ density = 1, burst }: { density?: number; burst?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -45,7 +45,7 @@ export function Starfield({ density = 1, burst }: { density?: number; burst?: nu
     const canvas = ref.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = false; // Animations always run, even when the device asks for reduced motion.
 
     let w = 0;
     let h = 0;
