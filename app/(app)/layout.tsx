@@ -11,7 +11,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="relative isolate flex min-h-dvh flex-col">
         <Backdrop stars={0.6} />
         <AppHeader />
-        <main className="flex-1">{children}</main>
+        <main id="main" className="flex-1">{children}</main>
         <Footer />
       </div>
     </MemberGate>

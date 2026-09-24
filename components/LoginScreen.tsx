@@ -36,7 +36,7 @@ export function LoginScreen() {
       <Backdrop stars={1.2} burst={INTRO - 250} />
       <SiteNav cta={<NavButton href="https://www.obclub.co">Visit OBC</NavButton>} />
 
-      <main className="flex flex-1 flex-col">
+      <main id="main" className="flex flex-1 flex-col">
         <section className="container-x flex flex-1 flex-col items-center justify-center pb-20 pt-12 text-center sm:pt-16">
           <span className="pill pill-beam enter" style={at(100)}>
             <span className="dot-ping size-1.5 rounded-full bg-bone" /> The OBC Partnership Program

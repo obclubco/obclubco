@@ -121,6 +121,17 @@ A lesson with no questions is complete once the partner marks the video as watch
 
   There's a ready-to-edit example at the bottom of `0002_public_pages.sql`.
 
+## Install as an app
+
+The site is a Progressive Web App: partners can install it and it opens full-screen with the OBC icon.
+- **Android / Chrome / Edge (desktop too):** tap **Install app** (header on desktop, floating button on phones),
+  or use the browser's own install option.
+- **iPhone / iPad:** tap **Install app** for the steps (Safari → Share → **Add to Home Screen**).
+
+Pieces: [`app/manifest.ts`](app/manifest.ts) (name, colours, icons in `public/icons/`), the service worker
+[`public/sw.js`](public/sw.js) (fast start and an offline screen; it never stores logins or course data) and
+[`components/InstallApp.tsx`](components/InstallApp.tsx). After changing `sw.js`, bump its `VERSION`.
+
 ## How it works
 
 - **Log in**: email + password (Supabase Auth). Accounts are created by the OBC team; there is no public sign-up.

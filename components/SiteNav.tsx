@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { Arrow } from "@/components/Icons";
+import { InstallApp } from "@/components/InstallApp";
 
 const PUBLIC_LINKS = [
   { href: "/about/", label: "About" },
@@ -17,7 +18,7 @@ const linkClass =
 export function SiteNav({ cta, links = PUBLIC_LINKS }: { cta?: React.ReactNode; links?: { href: string; label: string }[] }) {
   const pathname = usePathname();
   return (
-    <div className="enter-nav sticky top-0 z-30 px-4 pt-3 sm:pt-4">
+    <div className="enter-nav sticky top-0 z-30 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-[max(1rem,env(safe-area-inset-top))]">
       <nav className="nav-shell mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 rounded-2xl border border-line bg-ink/70 pl-4 pr-2 backdrop-blur-md sm:h-[68px] sm:pl-7 sm:pr-3">
         <Logo href="/" />
         <div className="flex items-center gap-4 text-[12px] text-bone/80 sm:gap-7 sm:text-[13px]">
@@ -35,7 +36,10 @@ export function SiteNav({ cta, links = PUBLIC_LINKS }: { cta?: React.ReactNode; 
             );
           })}
         </div>
-        {cta}
+        <div className="flex items-center gap-2">
+          <InstallApp />
+          {cta}
+        </div>
       </nav>
     </div>
   );

@@ -7,7 +7,7 @@ export const metadata = { title: "Access pending" };
 
 export default function NoAccess() {
   return (
-    <main className="relative isolate flex min-h-dvh flex-col">
+    <main id="main" className="relative isolate flex min-h-dvh flex-col">
       <Backdrop />
       <div className="container-x flex h-20 items-center">
         <Logo />
