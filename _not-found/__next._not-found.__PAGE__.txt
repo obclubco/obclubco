@@ -1,0 +1,27 @@
+1:"$Sreact.fragment"
+2:I[45731,["/_next/static/chunks/42d-m8gop0jri.js","/_next/static/chunks/0jnifrc4ncgdn.js"],"Starfield"]
+3:I[22016,["/_next/static/chunks/42d-m8gop0jri.js","/_next/static/chunks/0jnifrc4ncgdn.js"],""]
+4:I[97367,["/_next/static/chunks/42d-m8gop0jri.js"],"OutletBoundary"]
+5:"$Sreact.suspense"
+9:I[97367,["/_next/static/chunks/42d-m8gop0jri.js"],"ViewportBoundary"]
+a:I[97367,["/_next/static/chunks/42d-m8gop0jri.js"],"MetadataBoundary"]
+b:I[27201,["/_next/static/chunks/42d-m8gop0jri.js"],"IconMark"]
+d:I[39756,["/_next/static/chunks/42d-m8gop0jri.js"],"default"]
+e:I[37457,["/_next/static/chunks/42d-m8gop0jri.js"],"default"]
+12:I[24100,["/_next/static/chunks/42d-m8gop0jri.js"],"Motion"]
+13:I[54387,["/_next/static/chunks/42d-m8gop0jri.js"],"Pwa"]
+:HL["/_next/static/chunks/0q9ewiq620ahf.css","style"]
+8:X
+10:X
+10:C
+11:["$","style",null,{"children":"[data-reveal],[data-reveal] .word{opacity:1!important}"}]
+0:{"buildId":"OUQTXrk8SJ7_7MBQqO_NK","data":[{"rsc":["$","$1","c",{"children":[["$","main",null,{"id":"main","className":"relative isolate flex min-h-dvh flex-col items-center justify-center px-4 text-center","children":[[["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-light"}],["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-grid"}],["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-grid-hot"}],["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-glow"}],["$","$L2",null,{"density":1}]],["$","span",null,{"className":"pill enter","children":"404"}],["$","h1",null,{"className":"enter display mt-6 text-5xl sm:text-6xl","style":{"--d":"150ms"},"children":"Nothing Here."}],["$","$L3",null,{"href":"/","className":"enter btn-primary mt-10","style":{"--d":"300ms"},"children":"Back home"}]]}],[["$","script","script-0",{"src":"/_next/static/chunks/0jnifrc4ncgdn.js","async":true}]],["$","$L4",null,{"children":["$","$5",null,{"name":"Next.MetadataOutlet","children":"$@6"}]}]]}],"isPartial":"$@7","staleTime":"$8","varyParams":null},{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L9",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1, viewport-fit=cover"}],["$","meta","2",{"name":"theme-color","content":"#060606"}],["$","meta","3",{"name":"color-scheme","content":"dark"}]]}],["$","div",null,{"hidden":true,"children":["$","$La",null,{"children":["$","$5",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"OBC Partners"}],["$","meta","1",{"name":"description","content":"The OB Club Partnership Program — learn sales, business building and personal branding."}],["$","meta","2",{"name":"application-name","content":"OBC Partners"}],["$","link","3",{"rel":"manifest","href":"/manifest.webmanifest"}],["$","meta","4",{"name":"format-detection","content":"telephone=no"}],["$","meta","5",{"name":"mobile-web-app-capable","content":"yes"}],["$","meta","6",{"name":"apple-mobile-web-app-title","content":"OBC Partners"}],["$","meta","7",{"name":"apple-mobile-web-app-status-bar-style","content":"black-translucent"}],["$","link","8",{"rel":"icon","href":"/icon.png?icon.0r-cys6nwpdol.png","sizes":"512x512","type":"image/png"}],["$","link","9",{"rel":"apple-touch-icon","href":"/apple-icon.png?apple-icon.0-84xrkgkah62.png","sizes":"180x180","type":"image/png"}],["$","$Lb","10",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"isPartial":"$@c","staleTime":"$8","varyParams":null},{"rsc":["$","$1","c",{"children":[null,["$","$Ld",null,{"parallelRouterKey":"children","template":["$","$Le",null,{}]}]]}],"isPartial":"$@f","staleTime":"$8","varyParams":"$10"},{"rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/0q9ewiq620ahf.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/42d-m8gop0jri.js","async":true}]],["$","html",null,{"lang":"en","className":"geist_c9cd1597-module__Uoypzq__variable fraunces_b9fbdd8d-module__VLtB8W__variable","children":["$","body",null,{"children":[["$","noscript",null,{"children":"$11"}],["$","a",null,{"href":"#main","className":"sr-only fixed left-4 top-4 z-[70] rounded-full bg-accent px-5 py-3 text-sm text-ink focus:not-sr-only","children":"Skip to content"}],["$","$L12",null,{}],["$","$L13",null,{}],["$","$Ld",null,{"parallelRouterKey":"children","template":["$","$Le",null,{}],"notFound":[["$","main",null,{"id":"main","className":"relative isolate flex min-h-dvh flex-col items-center justify-center px-4 text-center","children":[[["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-light"}],["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-grid"}],["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-grid-hot"}],["$","div",null,{"aria-hidden":true,"className":"bg-layer bg-glow"}],["$","$L2",null,{"density":1}]],["$","span",null,{"className":"pill enter","children":"404"}],["$","h1",null,{"className":"enter display mt-6 text-5xl sm:text-6xl","style":{"--d":"150ms"},"children":"Nothing Here."}],["$","$L3",null,{"href":"/","className":"enter btn-primary mt-10","style":{"--d":"300ms"},"children":"Back home"}]]}],[]]}]]}]}]]}],"isPartial":"$@14","staleTime":"$8","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@15","rootVaryParams":null,"needsRuntimeRequest":"$@16"}
+6:null
+8:300
+16:true
+8:C
+15:0
+c:"$undefined"
+f:"$undefined"
+14:"$undefined"
+7:"$undefined"
