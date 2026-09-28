@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   deploy:
+    # Only the partner branch may publish partner.obclub.co (other branches hold other sites).
+    if: github.ref == 'refs/heads/partner'
     runs-on: ubuntu-latest
     env:
       DOMAIN: partner.obclub.co

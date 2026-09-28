@@ -13,7 +13,7 @@ function friendly(message: string) {
   return message;
 }
 
-/** Email + password log in. Accounts are created by the OBC team in Supabase. */
+/** Email + password log in. Logins are created by the OBC team in Supabase. */
 export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");

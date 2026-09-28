@@ -9,12 +9,12 @@ const serif = Fraunces({ subsets: ["latin"], axes: ["SOFT", "WONK", "opsz"], var
 const sans = Geist({ subsets: ["latin"], variable: "--font-body" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://partner.obclub.co"),
-  title: { default: "OBC Partners", template: "%s · OBC Partners" },
-  description: "The OB Club Partnership Program — learn sales, business building and personal branding.",
-  applicationName: "OBC Partners",
-  // Installed on iPhone/iPad: full-screen, dark status bar, "OBC Partners" under the icon.
-  appleWebApp: { capable: true, title: "OBC Partners", statusBarStyle: "black-translucent" },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://networking.obclub.co"),
+  title: { default: "OBC Networking", template: "%s · OBC Networking" },
+  description: "OB Club networking: your profile, the events you've been to and the guests you met there.",
+  applicationName: "OBC Networking",
+  // Installed on iPhone/iPad: full-screen, dark status bar, "OBC Network" under the icon.
+  appleWebApp: { capable: true, title: "OBC Network", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 

@@ -25,7 +25,7 @@ export function useLoad<T>(load: () => Promise<T>, deps: unknown[]) {
 
 export function usePageTitle(title: string | undefined) {
   useEffect(() => {
-    if (title) document.title = `${title} · OBC Partners`;
+    if (title) document.title = `${title} · OBC Networking`;
   }, [title]);
 }
 

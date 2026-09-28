@@ -16,10 +16,11 @@ const isIos = () =>
  * "Install app" button. Chrome/Edge/Android: opens the browser's install dialog.
  * iPhone/iPad (no install dialog on iOS): shows the Share → Add to Home Screen steps.
  * Hidden once installed, and in browsers that can't install apps.
- * On phones it floats at the bottom of the screen (dismissible); on larger screens it sits in the header.
+ * On phones it floats at the bottom of the screen (dismissible; `aboveTabBar` lifts it over the tab bar);
+ * on larger screens it sits in the header.
  */
 const DISMISS_KEY = "obc-install-dismissed";
-export function InstallApp() {
+export function InstallApp({ aboveTabBar = false }: { aboveTabBar?: boolean }) {
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   const [ios, setIos] = useState(false);
   const [help, setHelp] = useState(false);
@@ -87,7 +88,10 @@ export function InstallApp() {
       {createPortal(
         <>
           {!dismissed && !help && (
-            <div className="enter fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 flex justify-center px-4 sm:hidden" style={{ "--d": "2600ms" } as React.CSSProperties}>
+            <div
+              className={`enter fixed inset-x-0 z-40 flex justify-center px-4 sm:hidden ${aboveTabBar ? "bottom-[calc(5rem+env(safe-area-inset-bottom))]" : "bottom-[max(1rem,env(safe-area-inset-bottom))]"}`}
+              style={{ "--d": "2600ms" } as React.CSSProperties}
+            >
               <div className="flex items-center gap-1 rounded-full border border-line bg-ink/85 p-1.5 shadow-[0_20px_50px_-15px_rgb(0_0_0/0.9)] backdrop-blur-md">
                 <button onClick={install} className="btn-primary gap-2 px-5 py-2.5 text-[13px]">
                   {icon} Install app
@@ -110,7 +114,7 @@ export function InstallApp() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="install-title" className="display text-2xl">
-              Install OBC Partners
+              Install OBC Networking
             </h2>
             <ol className="mt-5 space-y-4 text-sm text-bone/85">
               <li className="flex items-center gap-3">

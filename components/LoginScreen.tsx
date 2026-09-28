@@ -17,10 +17,10 @@ const at = (ms: number) => ({ "--d": `${INTRO + ms}ms` }) as React.CSSProperties
 /** Where to go after logging in. Only same-site paths, and never back to the login page itself. */
 function safeNext(next: string | null) {
   const ok = next?.startsWith("/") && !next.startsWith("//") && next !== "/" && !next.startsWith("/?") && !next.startsWith("/login");
-  return ok ? next! : "/dashboard/";
+  return ok ? next! : "/home/";
 }
 
-/** The site's first page: partner log in, styled like the obclub.co hero, with an opening intro. */
+/** The site's first page: guest log in, styled like the obclub.co hero, with an opening intro. */
 export function LoginScreen() {
   usePageTitle("Log in");
   // Drop leftover anchors such as #how-it-works (from an older version of the page) from the address bar.
@@ -34,18 +34,19 @@ export function LoginScreen() {
     >
       <Intro />
       <Backdrop stars={1.2} burst={INTRO - 250} />
-      <SiteNav cta={<NavButton href="https://www.obclub.co">Visit OBC</NavButton>} />
+      <SiteNav links={[]} cta={<NavButton href="https://www.obclub.co">Visit OBC</NavButton>} />
 
       <main id="main" className="flex flex-1 flex-col">
         <section className="container-x flex flex-1 flex-col items-center justify-center pb-20 pt-12 text-center sm:pt-16">
           <span className="pill pill-beam enter" style={at(100)}>
-            <span className="dot-ping size-1.5 rounded-full bg-bone" /> The OBC Partnership Program
+            <span className="dot-ping size-1.5 rounded-full bg-bone" /> OBC Networking
           </span>
           <h1 className="display mt-8 max-w-4xl text-[clamp(2.6rem,6.4vw,4.6rem)] font-bold text-balance">
-            <SplitWords text="Learn From Builders. Sell, Scale, and Stand Out." delay={INTRO + 250} step={75} />
+            <SplitWords text="Everyone You've Met. All in One Place." delay={INTRO + 250} step={75} />
           </h1>
           <p className="enter mt-7 max-w-xl text-[15px] leading-7 text-bone/75" style={at(850)}>
-            A private learning space for OBC partners. Log in with the email and password the OBC team gave you.
+            Your profile, the OB Club events you&apos;ve been to and the guests you met there. Log in with the email and
+            password the OBC team gave you.
           </p>
           <div className="enter mt-10 w-full" style={at(1000)}>
             {isConfigured ? (
@@ -59,7 +60,7 @@ export function LoginScreen() {
             )}
           </div>
           <p className="enter mt-6 max-w-xs text-xs leading-5 text-mute" style={at(1150)}>
-            By invitation only. Accounts are created by the OBC team.
+            For OB Club guests. Logins are provided by the OBC team.
           </p>
         </section>
       </main>
@@ -80,7 +81,7 @@ function Intro() {
           <span className="intro-side">2026</span>
         </div>
         <span className="intro-line" />
-        <span className="intro-tag">Partnership Program</span>
+        <span className="intro-tag">Networking</span>
       </div>
     </div>
   );
@@ -91,7 +92,7 @@ function Login() {
   const router = useRouter();
   const next = safeNext(params.get("next"));
 
-  // Already logged in? Go straight to the courses.
+  // Already logged in? Go straight in.
   useEffect(() => {
     supabase()
       .auth.getSession()

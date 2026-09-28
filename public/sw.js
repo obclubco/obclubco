@@ -1,10 +1,10 @@
-// OBC Partners service worker: makes the site installable and opens it quickly / offline.
+// OBC Networking service worker: makes the site installable and opens it quickly / offline.
 // - Pages: always fetched fresh from the network; a saved copy (or offline.html) is used only when offline.
 // - Build files (/_next/static, hashed and never changing) and icons: served from cache.
-// - Supabase (logins, courses, quizzes) and any other site: never touched or stored.
+// - Supabase (logins, profiles, guest lists) and any other site: never touched or stored.
 const VERSION = "v1";
-const PAGES = `obc-pages-${VERSION}`;
-const ASSETS = `obc-assets-${VERSION}`;
+const PAGES = `obcn-pages-${VERSION}`;
+const ASSETS = `obcn-assets-${VERSION}`;
 const OFFLINE = "/offline.html";
 
 self.addEventListener("install", (event) => {
