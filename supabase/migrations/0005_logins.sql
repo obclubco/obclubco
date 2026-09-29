@@ -1,5 +1,5 @@
 -- OB Club Networking: manage logins from the guests table
--- Run once in Supabase (SQL Editor → paste → Run), after 0004_networking.sql.
+-- Run in Supabase (SQL Editor → paste → Run), after 0004_networking.sql. Running it again is safe.
 --
 -- Table Editor → guests: type a password in `set_password` and save. That creates the guest's login
 -- (or changes their password if they already have one); `password_set_at` shows when it took effect.
@@ -8,8 +8,8 @@
 -- Works with CSV import too (columns email, full_name, set_password).
 
 alter table public.guests
-  add column set_password text,
-  add column password_set_at timestamptz;
+  add column if not exists set_password text,
+  add column if not exists password_set_at timestamptz;
 
 comment on column public.guests.set_password is
   'Type a password to create this guest''s login or change their password. It is saved securely and this cell empties itself.';
@@ -126,15 +126,15 @@ exception when insufficient_privilege then
 end;
 $$;
 
-create trigger guests_take_password
+create or replace trigger guests_take_password
   before insert or update on public.guests
   for each row execute function public.guests_take_password();
 
-create trigger guests_sync_login
+create or replace trigger guests_sync_login
   after insert or update on public.guests
   for each row execute function public.guests_sync_login();
 
-create trigger guests_delete_login
+create or replace trigger guests_delete_login
   after delete on public.guests
   for each row execute function public.guests_delete_login();
 

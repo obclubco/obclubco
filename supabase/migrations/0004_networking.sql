@@ -1,5 +1,5 @@
 -- OB Club Networking (networking.obclub.co): database schema
--- Run once in Supabase (SQL Editor → paste → Run).
+-- Run in Supabase (SQL Editor → paste → Run). Running it again is safe: what already exists is kept.
 --
 -- Works in a Supabase project of its own, or in the same project as the Partnership Program
 -- (its migrations, 0001 to 0003, are on the partner branch). Nothing here clashes with the partner
@@ -10,7 +10,7 @@
 -- ─────────────────────────────────────────────────────────────
 -- One row per person. The OBC team adds the row (email + name); guests fill in the rest after
 -- logging in. Deleting a row removes that person from the site and from every guest list.
-create table public.guests (
+create table if not exists public.guests (
   id            uuid primary key default gen_random_uuid(),
   email         text not null unique check (email = lower(trim(email)) and email like '%_@_%'),
   full_name     text not null check (char_length(full_name) between 1 and 120),
@@ -46,7 +46,7 @@ begin
 end;
 $$;
 
-create trigger guests_before_write
+create or replace trigger guests_before_write
   before insert or update on public.guests
   for each row execute function public.guests_before_write();
 
@@ -71,7 +71,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────
 -- 2. Events and who was there
 -- ─────────────────────────────────────────────────────────────
-create table public.events (
+create table if not exists public.events (
   id              uuid primary key default gen_random_uuid(),
   title           text not null,
   description     text,
@@ -83,16 +83,16 @@ create table public.events (
   created_at      timestamptz not null default now(),
   check (ends_at is null or ends_at >= starts_at)
 );
-create index events_starts_at_idx on public.events (starts_at desc);
+create index if not exists events_starts_at_idx on public.events (starts_at desc);
 
 -- The guest list of each event: a row = this guest was at (or is coming to) this event.
-create table public.event_guests (
+create table if not exists public.event_guests (
   event_id uuid not null references public.events (id) on delete cascade,
   guest_id uuid not null references public.guests (id) on delete cascade,
   added_at timestamptz not null default now(),
   primary key (event_id, guest_id)
 );
-create index event_guests_guest_idx on public.event_guests (guest_id);
+create index if not exists event_guests_guest_idx on public.event_guests (guest_id);
 
 -- ─────────────────────────────────────────────────────────────
 -- 3. Security rules
@@ -103,15 +103,18 @@ alter table public.event_guests enable row level security;
 
 -- Guests read and edit only their own row. Other guests' profiles are served by get_network()
 -- below, which leaves out the private fields.
+drop policy if exists "guests read own row" on public.guests;
 create policy "guests read own row" on public.guests
   for select to authenticated
   using (id = (select public.my_guest_id()) or (select public.is_networking_admin()));
 
+drop policy if exists "guests edit own row" on public.guests;
 create policy "guests edit own row" on public.guests
   for update to authenticated
   using (id = (select public.my_guest_id()))
   with check (id = (select public.my_guest_id()));
 
+drop policy if exists "guests read their events" on public.events;
 create policy "guests read their events" on public.events
   for select to authenticated
   using (
@@ -122,10 +125,12 @@ create policy "guests read their events" on public.events
     ))
   );
 
+drop policy if exists "guests read own visits" on public.event_guests;
 create policy "guests read own visits" on public.event_guests
   for select to authenticated
   using (guest_id = (select public.my_guest_id()) or (select public.is_networking_admin()));
 
+drop policy if exists "admins remove guests from events" on public.event_guests;
 create policy "admins remove guests from events" on public.event_guests
   for delete to authenticated
   using ((select public.is_networking_admin()));
@@ -370,14 +375,17 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('guest-photos', 'guest-photos', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
 on conflict (id) do nothing;
 
+drop policy if exists "guests read own photos" on storage.objects;
 create policy "guests read own photos" on storage.objects
   for select to authenticated
   using (bucket_id = 'guest-photos' and (storage.foldername(name))[1] = (select public.my_guest_id())::text);
 
+drop policy if exists "guests upload own photos" on storage.objects;
 create policy "guests upload own photos" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'guest-photos' and (storage.foldername(name))[1] = (select public.my_guest_id())::text);
 
+drop policy if exists "guests delete own photos" on storage.objects;
 create policy "guests delete own photos" on storage.objects
   for delete to authenticated
   using (bucket_id = 'guest-photos' and (storage.foldername(name))[1] = (select public.my_guest_id())::text);

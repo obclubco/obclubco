@@ -27,7 +27,7 @@ project, but then each email has a single login for both sites.)
 2. **SQL Editor** → paste all of [`supabase/migrations/0004_networking.sql`](supabase/migrations/0004_networking.sql)
    → **Run**, then the same with [`supabase/migrations/0005_logins.sql`](supabase/migrations/0005_logins.sql) (logins
    from the Table Editor). Those are the only files the networking site needs (`0001` to `0003` belong to the partner
-   site, on the `partner` branch).
+   site, on the `partner` branch). Running them again is safe: nothing that exists is removed or changed.
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
    the first guest's email to your own before running it, so you're an admin.
 4. **Authentication → Sign In / Providers**: keep **Email** on and turn **off** "Allow new users to sign up".
