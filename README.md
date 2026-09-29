@@ -61,9 +61,11 @@ It will only ever hold the built site (no guest data: that stays in Supabase, be
    New repository secret**: name `NETWORKING_PAGES_TOKEN`, value: the token.
 
 **c. Supabase settings**
-**Secrets and variables → Actions → Variables tab** → add `NETWORKING_SUPABASE_URL` and `NETWORKING_SUPABASE_ANON_KEY`
-(the networking project's URL and anon / publishable key: Supabase → Project Settings → API). Without them the build
-falls back to the partner site's `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, i.e. a shared project.
+This repository (`obclubco/obclubco`, not `obclubco/networking`) → **Settings → Secrets and variables → Actions →
+Variables tab** → add `NETWORKING_SUPABASE_URL` and `NETWORKING_SUPABASE_ANON_KEY` (the networking project's URL and
+anon / publishable key: Supabase → Project Settings → API; the Secrets tab works too). Without them the build falls
+back to the partner site's `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, i.e. a shared project.
+Each deploy shows which Supabase project it used (**Actions** → the run), and stops if the key is a secret key.
 
 **d. Publish**
 Every push to the **`networking`** branch runs **Actions → Deploy networking.obclub.co**, which builds the site and

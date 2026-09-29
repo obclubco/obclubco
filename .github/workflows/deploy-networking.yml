@@ -23,9 +23,10 @@ jobs:
     env:
       DOMAIN: networking.obclub.co
       PAGES_REPO: ${{ vars.NETWORKING_PAGES_REPO || format('{0}/networking', github.repository_owner) }}
-      # Same Supabase project as the partner site unless NETWORKING_* variables are set.
-      SUPABASE_URL: ${{ vars.NETWORKING_SUPABASE_URL || vars.NEXT_PUBLIC_SUPABASE_URL }}
-      SUPABASE_KEY: ${{ vars.NETWORKING_SUPABASE_ANON_KEY || vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      # The networking Supabase project: NETWORKING_SUPABASE_URL and NETWORKING_SUPABASE_ANON_KEY, as Actions
+      # variables (secrets work too). Without them the site uses the partner site's project.
+      SUPABASE_URL: ${{ vars.NETWORKING_SUPABASE_URL || secrets.NETWORKING_SUPABASE_URL || vars.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_KEY: ${{ vars.NETWORKING_SUPABASE_ANON_KEY || secrets.NETWORKING_SUPABASE_ANON_KEY || vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,14 +38,38 @@ jobs:
       - name: Check settings
         env:
           PAGES_TOKEN: ${{ secrets.NETWORKING_PAGES_TOKEN }}
+          PARTNER_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          URL_FROM: ${{ vars.NETWORKING_SUPABASE_URL && 'variable' || secrets.NETWORKING_SUPABASE_URL && 'secret' || 'not set' }}
+          KEY_FROM: ${{ vars.NETWORKING_SUPABASE_ANON_KEY && 'variable' || secrets.NETWORKING_SUPABASE_ANON_KEY && 'secret' || 'not set' }}
         run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
-            echo "::warning::No Supabase settings found. The site will deploy, but logging in won't work until they're set (README → Put it live)."
-          fi
           if [ -z "$PAGES_TOKEN" ]; then
             echo "::error::Add the NETWORKING_PAGES_TOKEN secret: a token that can push to $PAGES_REPO (README → Put it live)."
             exit 1
           fi
+          echo "NETWORKING_SUPABASE_URL: $URL_FROM. NETWORKING_SUPABASE_ANON_KEY: $KEY_FROM."
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::warning::No Supabase settings found. The site will deploy, but logging in won't work until they're set (README → Put it live)."
+            exit 0
+          fi
+          # Only the public anon / publishable key may go into the site, and from the same project as the URL.
+          node <<'JS'
+          const { SUPABASE_URL: url, SUPABASE_KEY: key, PARTNER_URL: partnerUrl } = process.env;
+          const fail = (message) => {
+            console.log(`::error::${message} (README → Put it live, step c)`);
+            process.exit(1);
+          };
+          if (!/^https:\/\/\S+$/.test(url)) fail("NETWORKING_SUPABASE_URL should look like https://abcdefghijklmnop.supabase.co, with nothing before or after it.");
+          const project = (url.match(/^https:\/\/([a-z0-9]+)\.supabase\.co\/?$/) || [])[1];
+          let role = "unknown", ref;
+          if (key.startsWith("sb_publishable_")) role = "anon";
+          else if (key.startsWith("sb_secret_")) role = "secret";
+          else try { ({ role, ref } = JSON.parse(Buffer.from(key.split(".")[1], "base64url"))); } catch {}
+          if (role === "service_role" || role === "secret") fail("NETWORKING_SUPABASE_ANON_KEY is a secret key, which must never go into a website. Use the anon / publishable key.");
+          if (role !== "anon") fail("NETWORKING_SUPABASE_ANON_KEY doesn't look like a Supabase anon / publishable key.");
+          if (ref && project && ref !== project) fail(`The URL is for Supabase project ${project} but the key is for project ${ref}. Copy both from the same project.`);
+          if (url === partnerUrl) console.log(`::warning::Using the partner site's Supabase project (${project || url}): NETWORKING_SUPABASE_URL and NETWORKING_SUPABASE_ANON_KEY aren't set in this repository's Actions variables.`);
+          else console.log(`::notice::Using Supabase project ${project || url}.`);
+          JS
 
       - run: npm ci
 
