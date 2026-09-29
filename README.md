@@ -62,8 +62,9 @@ It will only ever hold the built site (no guest data: that stays in Supabase, be
 
 **c. Supabase settings**
 This repository (`obclubco/obclubco`, not `obclubco/networking`) → **Settings → Secrets and variables → Actions →
-Variables tab** → add `NETWORKING_SUPABASE_URL` and `NETWORKING_SUPABASE_ANON_KEY` (the networking project's URL and
-anon / publishable key: Supabase → Project Settings → API; the Secrets tab works too). Without them the build falls
+Variables tab** → add `NETWORKING_SUPABASE_URL` and `NETWORKING_SUPABASE_ANON_KEY` (the networking project's URL, like
+`https://abcdefghijklmnop.supabase.co` rather than the dashboard's address, and its anon / publishable key: Supabase →
+Project Settings → API; the Secrets tab works too). Without them the build falls
 back to the partner site's `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, i.e. a shared project.
 Each deploy shows which Supabase project it used (**Actions** → the run), and stops if the key is a secret key.
 

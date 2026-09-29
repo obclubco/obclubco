@@ -58,6 +58,8 @@ jobs:
             console.log(`::error::${message} (README → Put it live, step c)`);
             process.exit(1);
           };
+          const dashboard = url.match(/^https?:\/\/(?:www\.)?supabase\.com\/dashboard\/project\/([a-z0-9]+)/);
+          if (dashboard) fail(`NETWORKING_SUPABASE_URL is a link to the Supabase dashboard. Use the project's API address instead: https://${dashboard[1]}.supabase.co`);
           if (!/^https:\/\/\S+$/.test(url)) fail("NETWORKING_SUPABASE_URL should look like https://abcdefghijklmnop.supabase.co, with nothing before or after it.");
           const project = (url.match(/^https:\/\/([a-z0-9]+)\.supabase\.co\/?$/) || [])[1];
           let role = "unknown", ref;
