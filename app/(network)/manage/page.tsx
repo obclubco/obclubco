@@ -58,8 +58,8 @@ export default function ManagePage() {
           <span className="text-bone">Events</span> are added in Supabase (Table Editor → <code className="text-bone">events</code>).{" "}
           <span className="text-bone">Guest lists</span>: open an event below and paste the emails of who was there; new
           people are added to the site at the same time.{" "}
-          <span className="text-bone">Logins</span>: Supabase → Authentication → Users → Add user, with the same email and a
-          password to send them.
+          <span className="text-bone">Logins</span>: in Supabase (Table Editor → <code className="text-bone">guests</code>), type a
+          password in <code className="text-bone">set_password</code> and send it to them.
         </p>
       </div>
 

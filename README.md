@@ -25,8 +25,9 @@ project, but then each email has a single login for both sites.)
 
 1. [supabase.com](https://supabase.com) → **New project** (e.g. `obc-networking`).
 2. **SQL Editor** → paste all of [`supabase/migrations/0004_networking.sql`](supabase/migrations/0004_networking.sql)
-   → **Run**. That's the only file the networking site needs (`0001` to `0003` belong to the partner site, on the
-   `partner` branch).
+   → **Run**, then the same with [`supabase/migrations/0005_logins.sql`](supabase/migrations/0005_logins.sql) (logins
+   from the Table Editor). Those are the only files the networking site needs (`0001` to `0003` belong to the partner
+   site, on the `partner` branch).
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
    the first guest's email to your own before running it, so you're an admin.
 4. **Authentication → Sign In / Providers**: keep **Email** on and turn **off** "Allow new users to sign up".
@@ -94,14 +95,17 @@ domain, save, and add it again.
 | --- | --- |
 | **Add an event** | Supabase → **Table Editor → `events`** → Insert row: `title`, `starts_at` (date and time), optional `ends_at`, `location`, `description`, `cover_image_url` (an image link). Turn `is_published` off to prepare an event without guests seeing it. |
 | **Put people on a guest list** | On the site, as an admin: **Events** → the event → **Manage the guest list** → paste email addresses, one per line (a column copied from a spreadsheet works). Someone new also needs a name: `Jane Doe, jane@company.com, Company`. They're added to the site and to the event in one go. **Remove** takes someone off the list: after an event, remove the no-shows so the list shows who was really there. |
-| **Give someone a login** | Supabase → **Authentication → Users → Add user → Create new user**: the same email as on the guest list, a password, tick **Auto Confirm User**. Send them the email and password; they log in at networking.obclub.co and can change the password on their Profile page. The site's **Admin** page shows who has no login yet (**Copy … without a login**). |
+| **Give someone a login** | Table Editor → `guests` → type a password (8+ characters) in their `set_password` cell and save. That creates their login; `password_set_at` shows it worked. Send them the email and password; they log in at networking.obclub.co and can change the password on their Profile page. The password isn't kept: the cell empties itself, so note it down before saving. The site's **Admin** page shows who has no login yet (**Copy … without a login**). |
+| **Add many people with logins** | Table Editor → `guests` → **Insert → Import data from CSV** with the columns `email`, `full_name` and `set_password` (plus any profile columns). Everyone gets a login in one go. |
 | **Make someone an admin** | Table Editor → `guests` → set `is_admin` to true. Admins see every event and guest (hidden ones too), draft events, and the Admin page. |
 | **Edit someone's profile** | Table Editor → `guests`. (Guests edit their own on the Profile page.) |
-| **Change a password** | **SQL Editor** → `update auth.users set encrypted_password = extensions.crypt('NEW-PASSWORD', extensions.gen_salt('bf')) where email = 'their@email.com';` |
-| **Remove someone** | Delete their `guests` row: they lose access and disappear from every guest list. Also delete the user under Authentication → Users to remove the login. |
+| **Change a password** | Type the new one in their `set_password` cell and save. |
+| **Change someone's email** | Edit `email` in their `guests` row; their login moves to the new email and keeps its password. |
+| **Remove someone** | Delete their `guests` row: they lose access, disappear from every guest list, and their login is deleted. |
 
-Someone must be in the `guests` table **before** you create their login; otherwise Supabase refuses with "Database
-error creating new user". (If the sites share one project, emails on the partner site's `allowed_emails` list work too.)
+Logins made under Authentication → Users instead also work, but only for emails already in `guests`; otherwise
+Supabase refuses with "Database error creating new user". (If the sites share one project, emails on the partner site's
+`allowed_emails` list work too, and those partner logins are never changed or deleted from the `guests` table.)
 Emails are stored in lowercase automatically.
 
 ## What guests can see
@@ -143,6 +147,7 @@ app/
 components/                         UI: GuestGate (login check), ProfileEditor, GuestListManager, cards…
 lib/network.ts                      reading and saving guests, events and guest lists
 supabase/migrations/0004_networking.sql   database: tables, security rules, functions
+supabase/migrations/0005_logins.sql       logins and passwords from the guests table
 supabase/seed-networking.sql        example content
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co
 ```
