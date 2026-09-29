@@ -19,17 +19,18 @@ database, profile photos), hosted as plain files on GitHub Pages. All access con
 
 ## 1. Set up Supabase (one time)
 
-Use the **same Supabase project as the partner site** (easiest: one place to manage everyone, and people who are in
-both programs have one login) or a new project. Both work.
+The networking site has its **own Supabase project**, so its logins are separate from the partner site's: the same
+email can have one password for partner.obclub.co and another for networking.obclub.co. (It can also share the partner
+project, but then each email has a single login for both sites.)
 
-1. **SQL Editor** → paste all of [`supabase/migrations/0004_networking.sql`](supabase/migrations/0004_networking.sql)
+1. [supabase.com](https://supabase.com) → **New project** (e.g. `obc-networking`).
+2. **SQL Editor** → paste all of [`supabase/migrations/0004_networking.sql`](supabase/migrations/0004_networking.sql)
    → **Run**. That's the only file the networking site needs (`0001` to `0003` belong to the partner site, on the
    `partner` branch).
-2. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
+3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
    the first guest's email to your own before running it, so you're an admin.
-3. **New project only:** **Authentication → Sign In / Providers**: keep **Email** on and turn **off** "Allow new users
-   to sign up". **Authentication → URL Configuration** → *Site URL*: `https://networking.obclub.co`.
-   (A shared project is already set up this way.)
+4. **Authentication → Sign In / Providers**: keep **Email** on and turn **off** "Allow new users to sign up".
+   **Authentication → URL Configuration** → *Site URL*: `https://networking.obclub.co`.
 
 ## 2. Run the site on your computer
 
@@ -59,10 +60,9 @@ It will only ever hold the built site (no guest data: that stays in Supabase, be
    New repository secret**: name `NETWORKING_PAGES_TOKEN`, value: the token.
 
 **c. Supabase settings**
-- Same Supabase project as the partner site: nothing to add. The build uses the partner site's
-  `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` variables.
-- Separate project: **Secrets and variables → Actions → Variables tab** → add `NETWORKING_SUPABASE_URL` and
-  `NETWORKING_SUPABASE_ANON_KEY` (Supabase → Project Settings → API).
+**Secrets and variables → Actions → Variables tab** → add `NETWORKING_SUPABASE_URL` and `NETWORKING_SUPABASE_ANON_KEY`
+(the networking project's URL and anon / publishable key: Supabase → Project Settings → API). Without them the build
+falls back to the partner site's `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, i.e. a shared project.
 
 **d. Publish**
 Every push to the **`networking`** branch runs **Actions → Deploy networking.obclub.co**, which builds the site and
@@ -101,7 +101,7 @@ domain, save, and add it again.
 | **Remove someone** | Delete their `guests` row: they lose access and disappear from every guest list. Also delete the user under Authentication → Users to remove the login. |
 
 Someone must be in the `guests` table **before** you create their login; otherwise Supabase refuses with "Database
-error creating new user". In a shared project, emails on the partner site's `allowed_emails` list work too.
+error creating new user". (If the sites share one project, emails on the partner site's `allowed_emails` list work too.)
 Emails are stored in lowercase automatically.
 
 ## What guests can see
