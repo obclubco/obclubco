@@ -2,8 +2,8 @@
 -- Run once in Supabase (SQL Editor → paste → Run).
 --
 -- Works in a Supabase project of its own, or in the same project as the Partnership Program
--- (0001 and 0002 are its migrations). Nothing here clashes with the partner tables, and the
--- sign-up check in section 5 lets people on either list get an account.
+-- (its migrations, 0001 to 0003, are on the partner branch). Nothing here clashes with the partner
+-- tables, and the sign-up check in section 5 lets people on either list get an account.
 
 -- ─────────────────────────────────────────────────────────────
 -- 1. Guests: who may log in, and everyone's profile

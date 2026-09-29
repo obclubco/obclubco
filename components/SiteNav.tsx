@@ -6,16 +6,11 @@ import { Logo } from "@/components/Logo";
 import { Arrow } from "@/components/Icons";
 import { InstallApp } from "@/components/InstallApp";
 
-const PUBLIC_LINKS = [
-  { href: "/about/", label: "About" },
-  { href: "/coaches/", label: "Coaches" },
-];
-
 const linkClass =
   "relative py-1 transition duration-300 after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:bg-bone/70 after:transition-transform after:duration-500 after:ease-smooth hover:text-bone hover:after:scale-x-100";
 
-/** Floating, bordered nav bar as on obclub.co, with the public pages (About, Coaches). */
-export function SiteNav({ cta, links = PUBLIC_LINKS }: { cta?: React.ReactNode; links?: { href: string; label: string }[] }) {
+/** Floating, bordered nav bar as on obclub.co, with optional page links. */
+export function SiteNav({ cta, links = [] }: { cta?: React.ReactNode; links?: { href: string; label: string }[] }) {
   const pathname = usePathname();
   return (
     <div className="enter-nav sticky top-0 z-30 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-[max(1rem,env(safe-area-inset-top))]">

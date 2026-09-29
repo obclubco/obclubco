@@ -1,4 +1,4 @@
--- Example content for OB Club Networking. Run AFTER migrations/0003_networking.sql.
+-- Example content for OB Club Networking. Run AFTER migrations/0004_networking.sql.
 -- Replace the emails with real ones first: put your own email on the first row so you're an admin.
 
 -- 1. The guest list (is_admin = true: sees every event and guest, and manages guest lists).

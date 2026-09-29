@@ -22,10 +22,11 @@ database, profile photos), hosted as plain files on GitHub Pages. All access con
 Use the **same Supabase project as the partner site** (easiest: one place to manage everyone, and people who are in
 both programs have one login) or a new project. Both work.
 
-1. **SQL Editor** → paste all of [`supabase/migrations/0003_networking.sql`](supabase/migrations/0003_networking.sql)
-   → **Run**. That's the only file the networking site needs (`0001` and `0002` belong to the partner site).
-2. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Put your
-   own email on its first line first, so you're an admin.
+1. **SQL Editor** → paste all of [`supabase/migrations/0004_networking.sql`](supabase/migrations/0004_networking.sql)
+   → **Run**. That's the only file the networking site needs (`0001` to `0003` belong to the partner site, on the
+   `partner` branch).
+2. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
+   the first guest's email to your own before running it, so you're an admin.
 3. **New project only:** **Authentication → Sign In / Providers**: keep **Email** on and turn **off** "Allow new users
    to sign up". **Authentication → URL Configuration** → *Site URL*: `https://networking.obclub.co`.
    (A shared project is already set up this way.)
@@ -64,8 +65,9 @@ It will only ever hold the built site (no guest data: that stays in Supabase, be
   `NETWORKING_SUPABASE_ANON_KEY` (Supabase → Project Settings → API).
 
 **d. Publish**
-Push this code to the **`networking`** branch. **Actions → Deploy networking.obclub.co** builds it and creates the
-`gh-pages` branch in `obclubco/networking`.
+Every push to the **`networking`** branch runs **Actions → Deploy networking.obclub.co**, which builds the site and
+creates the `gh-pages` branch in `obclubco/networking`. Runs before steps a–c stop at "Add the NETWORKING_PAGES_TOKEN
+secret"; once they're done, open the latest run and click **Re-run all jobs**.
 
 **e. Point GitHub Pages at it**
 `obclubco/networking` → **Settings → Pages**:
@@ -140,11 +142,10 @@ app/
   (network)/manage/                 admin: all guests and events, who has a login
 components/                         UI: GuestGate (login check), ProfileEditor, GuestListManager, cards…
 lib/network.ts                      reading and saving guests, events and guest lists
-supabase/migrations/0003_networking.sql   database: tables, security rules, functions
+supabase/migrations/0004_networking.sql   database: tables, security rules, functions
 supabase/seed-networking.sql        example content
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co
 ```
 
-This branch was started from `partner`, so it still contains the Partnership Program's own files (course pages under
-`app/(app)/`, `about/`, `coaches/`, their components, `supabase/migrations/0001`–`0002`, `seed.sql`, `deploy.yml`).
-The networking site doesn't use them; they can be removed from this branch.
+The Partnership Program's own pages and database files live on the `partner` branch. Keep the two branches separate:
+merging `networking` into `partner` would remove the course pages from partner.obclub.co.
