@@ -121,6 +121,32 @@ A lesson with no questions is complete once the partner marks the video as watch
 
   There's a ready-to-edit example at the bottom of `0002_public_pages.sql`.
 
+## Social posting (Admin → Social)
+
+Admins can upload a video once, write a caption (optionally a different one per platform), pick the OBC
+accounts and publish to all of them at once, schedule it, or save a draft. It runs through
+[Zernio](https://zernio.com); the Zernio key lives only in a Supabase Edge Function
+([`supabase/functions/social/index.ts`](supabase/functions/social/index.ts)), never in the website, and only
+admins (`allowed_emails.is_admin`) can use it.
+
+**One-time setup**
+1. **Zernio:** create an account at zernio.com, connect OBC's social accounts in the Zernio dashboard
+   (Instagram needs a Business/Creator account; YouTube needs a channel), and create an **API key**.
+2. **Supabase → SQL Editor:** run [`supabase/migrations/0003_social.sql`](supabase/migrations/0003_social.sql)
+   (backup upload bucket).
+3. **Supabase → Edge Functions → Secrets:** add `ZERNIO_API_KEY` = your Zernio key.
+4. **Deploy the function**, either:
+   - **Automatically:** GitHub → Settings → Secrets and variables → Actions → **Secrets** → add
+     `SUPABASE_ACCESS_TOKEN` (Supabase → Account → Access Tokens). Then Actions → **Deploy Supabase functions** →
+     Run workflow. It redeploys by itself whenever the function changes.
+   - **By hand:** Supabase → Edge Functions → **Deploy a new function** → **Via editor**, name it `social`,
+     paste the contents of `supabase/functions/social/index.ts`, deploy.
+
+**How it works:** the video uploads straight from the browser to Zernio's storage (up to 5 GB). If a browser
+can't upload there, it falls back to the public `social-media` bucket in Supabase Storage (subject to your
+Supabase plan's file-size limit). Then one request publishes to every selected account. Results, links to the
+live posts, and a **Retry failed** button appear on the page. TikTok requires ticking the consent box each time.
+
 ## Install as an app
 
 The site is a Progressive Web App: partners can install it and it opens full-screen with the OBC icon.
@@ -166,6 +192,7 @@ To change the browser-tab icon, replace [`app/icon.png`](app/icon.png) (square P
 app/
   page.tsx                         first page: opening intro + partner log in (email + password)
   about/, coaches/                 public pages: course summary, coaches' experience and portfolio
+  (app)/admin/social/              post a video to all social accounts at once (Zernio)
   login/                           same log in page, kept so older /login/ links still work
   icon.png, apple-icon.png         browser-tab and home-screen icons
   no-access/                       shown to signed-in users who aren't on the allowlist
@@ -176,6 +203,8 @@ app/
 components/                        UI, log in gate (MemberGate), lesson player + quiz
 lib/                               Supabase client, data queries, video URL handling
 .github/workflows/deploy.yml       builds and publishes to GitHub Pages
+.github/workflows/deploy-functions.yml  deploys the Supabase Edge Function (social posting)
+supabase/functions/social/         Edge Function that talks to Zernio (admins only)
 supabase/migrations/0001_init.sql  database schema, security rules, grading functions
 supabase/seed.sql                  example content
 ```

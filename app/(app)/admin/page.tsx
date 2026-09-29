@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
+import { Arrow } from "@/components/Icons";
 import { useRouter } from "next/navigation";
 import { useMember } from "@/components/MemberGate";
 import { ErrorState, Loading } from "@/components/States";
@@ -70,6 +72,9 @@ export default function AdminPage() {
       <h1 className="display mt-4 text-5xl">
         <SplitWords text="Partners" delay={100} />
       </h1>
+      <Link href="/admin/social/" className="enter btn-ghost mt-6" style={{ "--d": "250ms" } as React.CSSProperties}>
+        Post to social media <Arrow />
+      </Link>
       <p className="enter mt-4 max-w-2xl text-sm text-mute" style={{ "--d": "300ms" } as React.CSSProperties}>
         Partner access and course content are managed in Supabase: add an email to the <code className="text-bone">allowed_emails</code>{" "}
         table to authorise someone, and add rows to <code className="text-bone">courses</code>,{" "}
