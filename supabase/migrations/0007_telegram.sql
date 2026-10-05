@@ -234,6 +234,7 @@ declare
   v_chats jsonb;
   v_chat  jsonb;
   v_error text;
+  v_seen  int;
 begin
   v_reply := public.telegram_request(v_token, 'getMe', '{}', 8000);
   if not coalesce((v_reply ->> 'ok')::boolean, false) then
@@ -244,22 +245,28 @@ begin
   if nullif(trim(p_chat), '') is not null then
     v_chat := jsonb_build_object('id', trim(p_chat));
   else
-    -- Groups the bot has been added to (Telegram keeps these for 24 hours).
+    -- Groups and channels the bot was added to or got a command in (Telegram keeps these for 24 hours).
     v_reply := public.telegram_request(v_token, 'getUpdates', '{}', 8000);
     if not coalesce((v_reply ->> 'ok')::boolean, false) then
       return 'Telegram: ' || coalesce(v_reply ->> 'description', 'no answer') || '. Try again in a minute.';
     end if;
+    v_seen := jsonb_array_length(v_reply -> 'result');
     select coalesce(jsonb_agg(chat order by chat ->> 'title'), '[]') into v_chats
     from (
-      select distinct on (c.chat ->> 'id') c.chat
+      select distinct on (c.chat ->> 'id') c.chat, c.status
       from jsonb_array_elements(v_reply -> 'result') u,
-           lateral (select coalesce(u -> 'my_chat_member' -> 'chat', u -> 'message' -> 'chat') as chat) c
-      where c.chat ->> 'type' in ('group', 'supergroup')
+           lateral (select coalesce(u -> 'my_chat_member' -> 'chat', u -> 'message' -> 'chat',
+                                    u -> 'edited_message' -> 'chat', u -> 'channel_post' -> 'chat') as chat,
+                           u -> 'my_chat_member' -> 'new_chat_member' ->> 'status' as status) c
+      where c.chat ->> 'type' in ('group', 'supergroup', 'channel')
       order by c.chat ->> 'id', (u ->> 'update_id')::bigint desc
-    ) groups;
+    ) latest
+    where coalesce(status, 'member') not in ('left', 'kicked');  -- not where it was removed again
     if jsonb_array_length(v_chats) = 0 then
-      return v_bot || ' isn''t in a group yet. Add it to your Telegram group (or remove it and add it again), send a '
-        || 'message in the group, then run this again.';
+      return v_bot || ' can''t see your group yet. In Telegram, open the group → Add members → search ' || v_bot
+        || ' → Add (in a channel: add it as an administrator). Then send ' || replace(v_bot, '@', '/start@')
+        || ' in the group and run this again. (Telegram has ' || case when v_seen = 0 then 'no recent activity'
+        else v_seen || ' recent update(s), none from a group' end || ' for the bot.)';
     end if;
     if jsonb_array_length(v_chats) > 1 then
       return v_bot || ' is in several groups. Run this again with your token and the group to use: '

@@ -143,10 +143,11 @@ Admin page marks the message ✅ Accepted; **Delete** takes the person's details
 1. Supabase → **SQL Editor** → run [`supabase/migrations/0007_telegram.sql`](supabase/migrations/0007_telegram.sql).
 2. Telegram → search **@BotFather** → **/newbot** → give it a name (e.g. *OBC Applications*) and a username ending in
    `bot` → copy the token it sends (it looks like `123456789:AAHw3f…`). Keep it private: it lets anyone post as the bot.
-3. Add the bot to your group (the group → **Add members** → the bot's username).
+3. Add the bot to your group (the group → **Add members** → the bot's username; in a channel, add it as an
+   administrator), then send `/start@` followed by the bot's username in the group, e.g. `/start@OBCnetwork_bot`.
 4. Within a day, in the SQL Editor: `select public.telegram_connect('PASTE-THE-TOKEN-HERE');`. It answers
    *Connected to "your group"…* and a test message appears in the group. (If the bot is in several groups, it lists
-   them with the line to run for each.)
+   them with the line to run for each; if it can't see the group yet, it says what to do.)
 
 Use a group of just the people who review applications: the application page tells applicants that only the OB Club
 team sees their details. The token is kept in the `telegram_settings` table, which the website can't read. If
