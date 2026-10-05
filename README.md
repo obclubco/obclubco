@@ -28,7 +28,8 @@ project, but then each email has a single login for both sites.)
 2. **SQL Editor** → paste all of [`supabase/migrations/0004_networking.sql`](supabase/migrations/0004_networking.sql)
    → **Run**, then the same with [`supabase/migrations/0005_logins.sql`](supabase/migrations/0005_logins.sql) (logins
    from the Table Editor) and [`supabase/migrations/0006_applications.sql`](supabase/migrations/0006_applications.sql)
-   (the application page). Those are the only files the networking site needs (`0001` to `0003` belong to the partner
+   (the application page). Optional: [`supabase/migrations/0007_telegram.sql`](supabase/migrations/0007_telegram.sql)
+   posts applications to a Telegram group (see *Applications in Telegram* below). Those are the only files the networking site needs (`0001` to `0003` belong to the partner
    site, on the `partner` branch). Running them again is safe: nothing that exists is removed or changed.
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
    the first guest's email to your own before running it, so you're an admin.
@@ -133,6 +134,26 @@ Applications are also in Supabase → Table Editor → `applications`. Only admi
 new ones. Applying again for the same event replaces the earlier application while it's waiting, a hidden field
 catches bots, and more than 60 applications in 10 minutes are asked to try again later.
 
+### Applications in Telegram
+
+Every new application can also be posted to a Telegram group: who it is, what they do, why they'd like to come, how
+to reach them (the phone links to WhatsApp or Telegram, as they asked) and a link to the Admin page. **Accept** on the
+Admin page marks the message ✅ Accepted; **Delete** takes the person's details out of it. Setting it up, once:
+
+1. Supabase → **SQL Editor** → run [`supabase/migrations/0007_telegram.sql`](supabase/migrations/0007_telegram.sql).
+2. Telegram → search **@BotFather** → **/newbot** → give it a name (e.g. *OBC Applications*) and a username ending in
+   `bot` → copy the token it sends (it looks like `123456789:AAHw3f…`). Keep it private: it lets anyone post as the bot.
+3. Add the bot to your group (the group → **Add members** → the bot's username).
+4. Within a day, in the SQL Editor: `select public.telegram_connect('PASTE-THE-TOKEN-HERE');`. It answers
+   *Connected to "your group"…* and a test message appears in the group. (If the bot is in several groups, it lists
+   them with the line to run for each.)
+
+Use a group of just the people who review applications: the application page tells applicants that only the OB Club
+team sees their details. The token is kept in the `telegram_settings` table, which the website can't read. If
+messages stop arriving, its `last_error` column says why (e.g. the bot was removed from the group); applications are
+still saved either way. To switch it off, delete the row in `telegram_settings`; to use another group or bot, run
+`telegram_connect` again.
+
 ## What guests can see
 
 - Only the events they're on the list for, and only the other guests of those events.
@@ -176,6 +197,7 @@ lib/applications.ts                 applications: the public page and the admin 
 supabase/migrations/0004_networking.sql   database: tables, security rules, functions
 supabase/migrations/0005_logins.sql       logins and passwords from the guests table
 supabase/migrations/0006_applications.sql applications from the public page
+supabase/migrations/0007_telegram.sql     applications posted to a Telegram group (optional)
 supabase/seed-networking.sql        example content
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co
 ```
