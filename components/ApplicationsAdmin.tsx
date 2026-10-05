@@ -203,24 +203,6 @@ function ApplicationCard({
             {a.email}
           </a>
         </dd>
-        <dt className="text-xs uppercase tracking-widest text-mute sm:pt-0.5">About</dt>
-        <dd className="min-w-0 whitespace-pre-line break-words text-bone/90">
-          {linkParts(a.links).map((p, i) =>
-            p.url ? (
-              <a
-                key={i}
-                href={p.url}
-                target="_blank"
-                rel="noreferrer nofollow"
-                className="underline decoration-bone/30 underline-offset-4 hover:decoration-bone"
-              >
-                {prettyUrl(p.url)}
-              </a>
-            ) : (
-              <span key={i}>{p.text}</span>
-            ),
-          )}
-        </dd>
         {work && (
           <>
             <dt className="text-xs uppercase tracking-widest text-mute sm:pt-0.5">Work</dt>
@@ -237,6 +219,28 @@ function ApplicationCard({
           <>
             <dt className="text-xs uppercase tracking-widest text-mute sm:pt-0.5">Heard via</dt>
             <dd className="min-w-0 break-words text-bone/90">{a.referred_by}</dd>
+          </>
+        )}
+        {a.links && (
+          <>
+            <dt className="text-xs uppercase tracking-widest text-mute sm:pt-0.5">Links</dt>
+            <dd className="min-w-0 whitespace-pre-line break-words text-bone/90">
+              {linkParts(a.links).map((p, i) =>
+                p.url ? (
+                  <a
+                    key={i}
+                    href={p.url}
+                    target="_blank"
+                    rel="noreferrer nofollow"
+                    className="underline decoration-bone/30 underline-offset-4 hover:decoration-bone"
+                  >
+                    {prettyUrl(p.url)}
+                  </a>
+                ) : (
+                  <span key={i}>{p.text}</span>
+                ),
+              )}
+            </dd>
           </>
         )}
       </dl>

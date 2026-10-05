@@ -115,16 +115,17 @@ Emails are stored in lowercase automatically.
 
 ## Applications: networking.obclub.co/apply/
 
-A public page where anyone can apply to join an event, without a login. It asks four required questions (name,
-email, phone and links that show who they are: LinkedIn, Instagram, a website), how they'd like to be contacted
-(WhatsApp, a call or Telegram), a few optional ones under **Tell us more**, and for consent. The bottom of the page
-explains how applications are handled.
+A public page where anyone can apply to join an event, without a login. It asks five required questions (name,
+email, phone, what they do and why they'd like to come), how they'd like to be contacted (WhatsApp, a call or
+Telegram), a few optional ones under **Tell us more** (company, city, who told them about OB Club), and for consent.
+The bottom of the page explains how applications are handled. **Apply for an event** in the header of the log in
+page leads there.
 
 | Task | How |
 | --- | --- |
 | **Take applications for an event** | Site → **Admin** → **Events** → switch **Applications** on, then **Copy link** and share it (`networking.obclub.co/apply/?event=…`). The page shows the event's title, date, time, description and cover image; never its location or who's coming. Switch it off to stop applications; they also stop once the event is over. |
 | **The general link** | `networking.obclub.co/apply/` (**Copy application link** on the Admin page). With one event open it shows that event; with several, people pick one; with none, they apply for future events in general. The log in page links to it too. |
-| **Review applications** | Admin page → **Applications**: each one with their contact details (the phone number opens WhatsApp, a call or Telegram, as they asked), links and answers. **Accept** puts them on the guest list (with their details, LinkedIn, Instagram and website in their profile) and on the event's guest list. |
+| **Review applications** | Admin page → **Applications**: each one with their contact details (the phone number opens WhatsApp, a call or Telegram, as they asked) and answers. **Accept** puts them on the guest list (with their details in their profile) and on the event's guest list. |
 | **Give an accepted guest a login** | As for anyone: Table Editor → `guests` → type a password in their `set_password` cell, then send it to them. |
 | **Decline** | **Delete** the application. The page promises to delete the details of people who aren't invited, so delete applications once you've decided. |
 

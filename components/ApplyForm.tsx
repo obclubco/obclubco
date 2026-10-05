@@ -6,7 +6,6 @@ import {
   APPLICATION_MAX,
   CONTACT_OPTIONS,
   CONTACT_PHRASE,
-  hasLink,
   submitApplication,
   type ContactVia,
   type OpenEvent,
@@ -14,9 +13,9 @@ import {
 import { formatDate } from "@/lib/format";
 import { errorMessage } from "@/lib/hooks";
 
-type TextKey = "full_name" | "email" | "phone" | "links" | "company" | "role" | "city" | "note" | "referred_by";
+type TextKey = "full_name" | "email" | "phone" | "company" | "role" | "city" | "note" | "referred_by";
 type Draft = Record<TextKey, string> & { event_id: string | null; contact_via: ContactVia; consent: boolean; trap: string };
-type Errors = Partial<Record<"full_name" | "email" | "phone" | "links" | "consent", string>>;
+type Errors = Partial<Record<"full_name" | "email" | "phone" | "role" | "note" | "consent", string>>;
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -29,8 +28,8 @@ function validate(d: Draft): Errors {
   if (!d.phone.trim()) errors.phone = "Please add your phone number.";
   else if (!/^[+\d\s().-]+$/.test(d.phone.trim()) || digits < 6 || digits > 15)
     errors.phone = "That doesn't look like a phone number. Include the country code, like +371.";
-  if (!d.links.trim()) errors.links = "Please add at least one link.";
-  else if (!hasLink(d.links)) errors.links = "Add at least one link: LinkedIn, Instagram or a website.";
+  if (!d.role.trim()) errors.role = "Please tell us what you do.";
+  if (!d.note.trim()) errors.note = "Please tell us why you'd like to come.";
   if (!d.consent) errors.consent = "Please tick this so we can review your application.";
   return errors;
 }
@@ -39,6 +38,7 @@ function friendly(message: string) {
   if (/EVENT_CLOSED/.test(message)) return "Applications for this event have just closed.";
   if (/TRY_LATER/.test(message)) return "Lots of applications are coming in right now. Please try again in a few minutes.";
   if (/CONSENT_REQUIRED/.test(message)) return "Please tick the box above so we can review your application.";
+  if (/ANSWERS_REQUIRED/.test(message)) return "Please answer every question marked *.";
   if (/fetch|network|load failed/i.test(message)) return "Couldn't reach the server. Check your connection and try again.";
   if (/check constraint|violates/i.test(message)) return "Something in the form isn't quite right. Please check your answers.";
   return "Something went wrong. Please try again.";
@@ -47,8 +47,8 @@ function friendly(message: string) {
 const text = (v: string) => v.trim() || null;
 
 /**
- * The application form: four required questions (name, email, phone, links), how to get in touch, optional
- * extras and consent. With several events open, it starts by asking which one.
+ * The application form: five required questions (name, email, phone, what they do, why they'd like to come), how
+ * to get in touch, optional * extras and consent. With several events open, it starts by asking which one.
  */
 export function ApplyForm({ choices }: { choices: OpenEvent[] }) {
   const [draft, setDraft] = useState<Draft>({
@@ -57,7 +57,6 @@ export function ApplyForm({ choices }: { choices: OpenEvent[] }) {
     email: "",
     phone: "",
     contact_via: "whatsapp",
-    links: "",
     company: "",
     role: "",
     city: "",
@@ -96,7 +95,7 @@ export function ApplyForm({ choices }: { choices: OpenEvent[] }) {
         email: draft.email.trim().toLowerCase(),
         phone: draft.phone.trim(),
         contact_via: draft.contact_via,
-        links: draft.links.trim(),
+        links: null,
         company: text(draft.company),
         role: text(draft.role),
         city: text(draft.city),
@@ -154,7 +153,7 @@ export function ApplyForm({ choices }: { choices: OpenEvent[] }) {
     <div ref={top} className="scroll-mt-28">
       <form onSubmit={send} noValidate className="card glow-card bg-surface/80 p-6 backdrop-blur-md sm:p-8">
         <h2 className="text-xl font-semibold">Apply</h2>
-        <p className="mt-1.5 text-sm text-mute">Only four questions are required.</p>
+        <p className="mt-1.5 text-sm text-mute">Only five questions are required.</p>
 
         {choices.length > 1 && (
           <fieldset className="mt-7">
@@ -222,25 +221,21 @@ export function ApplyForm({ choices }: { choices: OpenEvent[] }) {
             </div>
           </fieldset>
 
-          <Question
-            id="links"
-            label="About you"
-            required
-            error={errors.links}
-            hint="Links that show who you are: LinkedIn, Instagram, your website or company. We look at these first."
-          >
+          <Question id="role" label="What do you do?" required error={errors.role}>
+            {field("role", { autoComplete: "organization-title", placeholder: "Founder, investor, chef…" })}
+          </Question>
+
+          <Question id="note" label="Why would you like to come?" required error={errors.note}>
             <textarea
-              id="links"
-              value={draft.links}
-              onChange={(e) => set("links", e.target.value)}
-              maxLength={APPLICATION_MAX.links}
+              id="note"
+              value={draft.note}
+              onChange={(e) => set("note", e.target.value)}
+              maxLength={APPLICATION_MAX.note}
               rows={3}
-              placeholder="https://"
-              autoCapitalize="none"
-              spellCheck={false}
-              aria-invalid={!!errors.links}
-              aria-describedby={errors.links ? "links-error" : "links-hint"}
-              className={`textarea ${errors.links ? "border-bad/70" : ""}`}
+              placeholder="What you're working on, who you'd like to meet."
+              aria-invalid={!!errors.note}
+              aria-describedby={errors.note ? "note-error" : undefined}
+              className={`textarea ${errors.note ? "border-bad/70" : ""}`}
             />
           </Question>
 
@@ -255,24 +250,10 @@ export function ApplyForm({ choices }: { choices: OpenEvent[] }) {
                 <Question id="company" label="Company">
                   {field("company", { autoComplete: "organization" })}
                 </Question>
-                <Question id="role" label="What you do">
-                  {field("role", { autoComplete: "organization-title", placeholder: "Founder, investor…" })}
+                <Question id="city" label="City">
+                  {field("city", { autoComplete: "address-level2" })}
                 </Question>
               </div>
-              <Question id="city" label="City">
-                {field("city", { autoComplete: "address-level2" })}
-              </Question>
-              <Question id="note" label="Why would you like to come?">
-                <textarea
-                  id="note"
-                  value={draft.note}
-                  onChange={(e) => set("note", e.target.value)}
-                  maxLength={APPLICATION_MAX.note}
-                  rows={3}
-                  placeholder="What you're working on, who you'd like to meet."
-                  className="textarea"
-                />
-              </Question>
               <Question id="referred_by" label="Who told you about OB Club?">
                 {field("referred_by")}
               </Question>

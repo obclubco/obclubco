@@ -35,7 +35,8 @@ export type ApplicationInput = {
   email: string;
   phone: string;
   contact_via: ContactVia;
-  links: string;
+  /** No longer asked; applications sent before may have links (LinkedIn, Instagram, a website). */
+  links: string | null;
   company: string | null;
   role: string | null;
   city: string | null;
@@ -59,7 +60,6 @@ export const APPLICATION_MAX = {
   full_name: 120,
   email: 254,
   phone: 40,
-  links: 1000,
   company: 120,
   role: 120,
   city: 80,
@@ -145,9 +145,4 @@ export function linkParts(text: string): { text: string; url: string | null }[] 
     else parts.push({ text: head, url: null }, { text: core, url }, { text: tail, url: null });
   }
   return parts.filter((p) => p.text);
-}
-
-/** Whether the text contains at least one web address. */
-export function hasLink(text: string) {
-  return linkParts(text).some((p) => p.url);
 }

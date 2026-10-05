@@ -24,11 +24,11 @@ create table if not exists public.applications (
   email       text not null check (email = lower(email) and char_length(email) <= 254 and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
   phone       text not null check (char_length(phone) between 6 and 40),
   contact_via text not null default 'whatsapp' check (contact_via in ('whatsapp', 'call', 'telegram')),
-  links       text not null check (char_length(links) between 1 and 1000),  -- LinkedIn, Instagram, website…
+  links       text check (char_length(links) between 1 and 1000),           -- no longer asked (older applications)
   company     text check (char_length(company) <= 120),
-  role        text check (char_length(role) <= 120),
+  role        text check (char_length(role) <= 120),                       -- what they do (required on the page)
   city        text check (char_length(city) <= 80),
-  note        text check (char_length(note) <= 1000),                      -- why they'd like to come
+  note        text check (char_length(note) <= 1000),                      -- why they'd like to come (required)
   referred_by text check (char_length(referred_by) <= 120),                 -- who told them about OB Club
   status      text not null default 'new' check (status in ('new', 'accepted')),
   guest_id    uuid references public.guests (id) on delete set null,       -- their guest row, once accepted
@@ -36,6 +36,8 @@ create table if not exists public.applications (
   reviewed_at timestamptz
 );
 create index if not exists applications_created_at_idx on public.applications (created_at desc);
+-- The first version of the page required links; they're no longer asked.
+alter table public.applications alter column links drop not null;
 
 -- Only admins read and delete applications. New ones come in through submit_application() below.
 alter table public.applications enable row level security;
@@ -76,8 +78,8 @@ as $$
   order by e.starts_at
 $$;
 
--- p: {"event_id", "full_name", "email", "phone", "contact_via", "links", "company", "role", "city", "note",
---     "referred_by", "consent": true, "trap": ""}
+-- p: {"event_id", "full_name", "email", "phone", "contact_via", "role", "note", "company", "city", "referred_by",
+--     "consent": true, "trap": ""}
 create or replace function public.submit_application(p jsonb)
 returns void language plpgsql security definer
 set search_path = ''
@@ -92,6 +94,10 @@ begin
   end if;
   if (p ->> 'consent') is distinct from 'true' then
     raise exception 'CONSENT_REQUIRED';
+  end if;
+  -- Name, email and phone are required by the table; what they do and why they'd like to come, here.
+  if nullif(trim(p ->> 'role'), '') is null or nullif(trim(p ->> 'note'), '') is null then
+    raise exception 'ANSWERS_REQUIRED';
   end if;
   if nullif(p ->> 'event_id', '') is not null then
     select e.id into v_event from public.events e
@@ -118,7 +124,7 @@ begin
     v_email,
     trim(p ->> 'phone'),
     coalesce(nullif(p ->> 'contact_via', ''), 'whatsapp'),
-    trim(p ->> 'links'),
+    nullif(trim(p ->> 'links'), ''),
     nullif(trim(p ->> 'company'), ''),
     nullif(trim(p ->> 'role'), ''),
     nullif(trim(p ->> 'city'), ''),
@@ -131,8 +137,8 @@ $$;
 -- ─────────────────────────────────────────────────────────────
 -- 4. Admins: accept an application
 -- ─────────────────────────────────────────────────────────────
--- Puts the person on the guest list (unless they're on it already) with what they told us, including their
--- LinkedIn, Instagram and website links, and on the event's guest list. Returns their guest id.
+-- Puts the person on the guest list (unless they're on it already) with what they told us, and on the event's
+-- guest list. Links from older applications become their LinkedIn, Instagram and website. Returns their guest id.
 -- They still need a login: Table Editor → guests → set_password.
 create or replace function public.accept_application(p_id uuid)
 returns uuid language plpgsql security definer
