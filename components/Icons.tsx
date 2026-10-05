@@ -55,3 +55,9 @@ export const EyeOff = ({ className = "size-4" }: P) => (
 export const ChevronDown = ({ className = "size-4" }: P) => (
   <svg viewBox="0 0 24 24" className={className} {...base}><path d="m7 10 5 5 5-5" /></svg>
 );
+export const Check = ({ className = "size-4" }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...base}><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+);
+export const Plus = ({ className = "size-4" }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...base}><path d="M12 5v14M5 12h14" /></svg>
+);

@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ApplicationsAdmin } from "@/components/ApplicationsAdmin";
 import { useMe } from "@/components/GuestGate";
 import { EyeOff } from "@/components/Icons";
 import { SearchInput } from "@/components/SearchInput";
 import { SplitWords } from "@/components/SplitWords";
 import { ErrorState, Loading } from "@/components/States";
 import { eventStatus, formatDate } from "@/lib/format";
-import { useLoad, usePageTitle } from "@/lib/hooks";
-import { getAdminOverview, getMyEvents } from "@/lib/network";
+import { applyUrl, getOpenEventIds, setApplicationsOpen } from "@/lib/applications";
+import { errorMessage, useLoad, usePageTitle } from "@/lib/hooks";
+import { getAdminOverview, getMyEvents, type NetEvent } from "@/lib/network";
 
 const fmt = (iso: string | null) => (iso ? formatDate(iso, { day: "numeric", month: "short", year: "numeric" }) : "—");
 
@@ -20,18 +22,48 @@ export default function ManagePage() {
   usePageTitle("Admin");
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState(false);
+  // Events taking applications, as switched on this page (until the next reload).
+  const [openIds, setOpenIds] = useState<Set<string> | null>(null);
+  const [copiedEvent, setCopiedEvent] = useState<string | null>(null);
+  const [eventsNote, setEventsNote] = useState<string | null>(null);
   useEffect(() => {
     if (!me.is_admin) router.replace("/home/");
   }, [me.is_admin, router]);
-  const { data, error } = useLoad(
-    () => (me.is_admin ? Promise.all([getMyEvents(), getAdminOverview()]) : Promise.resolve(null)),
+  const { data, error, reload } = useLoad(
+    () => (me.is_admin ? Promise.all([getMyEvents(), getAdminOverview(), getOpenEventIds()]) : Promise.resolve(null)),
     [me.is_admin],
   );
 
   if (!me.is_admin) return <Loading />;
   if (error) return <ErrorState message={error} />;
   if (!data) return <Loading />;
-  const [events, guests] = data;
+  const [events, guests, loadedOpenIds] = data;
+  // Null until 0006_applications.sql has been run in Supabase: no switches then.
+  const open = openIds ?? loadedOpenIds ?? new Set<string>();
+
+  async function toggleApplications(e: NetEvent) {
+    const next = new Set(open);
+    if (next.has(e.id)) next.delete(e.id);
+    else next.add(e.id);
+    setOpenIds(next);
+    setEventsNote(null);
+    try {
+      await setApplicationsOpen(e.id, next.has(e.id));
+    } catch (err) {
+      setOpenIds(open);
+      setEventsNote(`Couldn't change applications for ${e.title}: ${errorMessage(err)}`);
+    }
+  }
+
+  async function copyEventLink(id: string) {
+    try {
+      await navigator.clipboard.writeText(applyUrl(id));
+      setCopiedEvent(id);
+      setTimeout(() => setCopiedEvent(null), 2500);
+    } catch {
+      window.prompt("Copy the application link:", applyUrl(id));
+    }
+  }
 
   const withoutLogin = guests.filter((g) => !g.has_login);
   const q = query.trim().toLowerCase();
@@ -59,7 +91,9 @@ export default function ManagePage() {
           <span className="text-bone">Guest lists</span>: open an event below and paste the emails of who was there; new
           people are added to the site at the same time.{" "}
           <span className="text-bone">Logins</span>: in Supabase (Table Editor → <code className="text-bone">guests</code>), type a
-          password in <code className="text-bone">set_password</code> and send it to them.
+          password in <code className="text-bone">set_password</code> and send it to them.{" "}
+          <span className="text-bone">Applications</span>: switch them on for an event below and share its link; accepting
+          someone puts them on that event&apos;s guest list.
         </p>
       </div>
 
@@ -80,17 +114,25 @@ export default function ManagePage() {
         ))}
       </div>
 
+      <ApplicationsAdmin events={events} onChanged={reload} />
+
       <section className="mt-14">
         <h2 data-reveal className="display mb-6 border-b border-line pb-4 text-3xl">
           Events
         </h2>
+        {eventsNote && (
+          <p role="alert" className="card mb-4 px-5 py-4 text-sm text-bad">
+            {eventsNote}
+          </p>
+        )}
         <div data-reveal className="card overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-line text-[11px] uppercase tracking-widest text-mute">
               <tr>
                 <th className="px-5 py-4 font-medium">Event</th>
                 <th className="px-5 py-4 font-medium">Date</th>
                 <th className="px-5 py-4 font-medium">Guests</th>
+                <th className="px-5 py-4 font-medium">Applications</th>
                 <th className="px-5 py-4 font-medium">
                   <span className="sr-only">Guest list</span>
                 </th>
@@ -105,6 +147,37 @@ export default function ManagePage() {
                   </td>
                   <td className="px-5 py-4 text-mute">{fmt(e.starts_at)}</td>
                   <td className="px-5 py-4">{e.guest_count}</td>
+                  <td className="px-5 py-4">
+                    {eventStatus(e) === "past" || !loadedOpenIds ? (
+                      <span className="text-mute">—</span>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={open.has(e.id)}
+                          aria-label={`Take applications for ${e.title}`}
+                          onClick={() => toggleApplications(e)}
+                          className={`relative h-6 w-11 shrink-0 rounded-full border transition duration-300 ease-smooth ${open.has(e.id) ? "border-accent bg-accent" : "border-line bg-elevated"}`}
+                        >
+                          <span
+                            className={`absolute top-[2px] size-[18px] rounded-full transition-all duration-300 ease-smooth ${open.has(e.id) ? "left-[22px] bg-ink" : "left-[2px] bg-bone/60"}`}
+                          />
+                        </button>
+                        {open.has(e.id) ? (
+                          <button
+                            type="button"
+                            onClick={() => copyEventLink(e.id)}
+                            className="text-xs text-bone/80 underline decoration-bone/30 underline-offset-4 transition hover:text-bone hover:decoration-bone"
+                          >
+                            {copiedEvent === e.id ? "Copied" : "Copy link"}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-mute">Off</span>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-5 py-4 text-right">
                     <Link href={`/event/?id=${e.id}`} className="btn-ghost px-4 py-2 text-xs">
                       Guest list
@@ -114,7 +187,7 @@ export default function ManagePage() {
               ))}
               {events.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-6 text-mute">
+                  <td colSpan={5} className="px-5 py-6 text-mute">
                     No events yet. Add one in Supabase → Table Editor → events.
                   </td>
                 </tr>

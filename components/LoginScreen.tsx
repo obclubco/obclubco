@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Backdrop } from "@/components/Backdrop";
@@ -60,7 +61,13 @@ export function LoginScreen() {
             )}
           </div>
           <p className="enter mt-6 max-w-xs text-xs leading-5 text-mute" style={at(1150)}>
-            For OB Club guests. Logins are provided by the OBC team.
+            For OB Club guests. Logins are provided by the OBC team.{" "}
+            <Link
+              href="/apply/"
+              className="text-bone/80 underline decoration-bone/30 underline-offset-4 transition hover:text-bone hover:decoration-bone"
+            >
+              Not on the list yet? Apply to join.
+            </Link>
           </p>
         </section>
       </main>
