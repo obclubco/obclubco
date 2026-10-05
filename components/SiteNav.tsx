@@ -40,8 +40,19 @@ export function SiteNav({ cta, links = [] }: { cta?: React.ReactNode; links?: { 
   );
 }
 
-export function NavButton({ href, children }: { href: string; children: React.ReactNode }) {
-  const className = "btn-primary px-3.5 py-2 text-[12px] sm:px-5 sm:py-2.5 sm:text-[13px]";
+/** A nav bar button: white (the page's main action) or outlined (`ghost`). */
+export function NavButton({
+  href,
+  children,
+  ghost = false,
+  className: extra = "",
+}: {
+  href: string;
+  children: React.ReactNode;
+  ghost?: boolean;
+  className?: string;
+}) {
+  const className = `${ghost ? "btn-ghost" : "btn-primary"} px-3.5 py-2 text-[12px] sm:px-5 sm:py-2.5 sm:text-[13px] ${extra}`;
   return href.startsWith("http") ? (
     <a href={href} className={className}>
       {children} <Arrow />

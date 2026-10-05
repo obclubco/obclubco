@@ -35,7 +35,22 @@ export function LoginScreen() {
     >
       <Intro />
       <Backdrop stars={1.2} burst={INTRO - 250} />
-      <SiteNav cta={<NavButton href="https://www.obclub.co">Visit OBC</NavButton>} />
+      <SiteNav
+        cta={
+          <>
+            {/* On phones only the application button fits; obclub.co is linked in the footer too. */}
+            <NavButton href="https://www.obclub.co" ghost className="hidden sm:inline-flex">
+              Visit OBC
+            </NavButton>
+            <NavButton href="/apply/">
+              {/* The smallest phones show just "Apply"; screen readers always hear the whole label. */}
+              <span>
+                Apply<span className="sr-only min-[360px]:not-sr-only"> for an event</span>
+              </span>
+            </NavButton>
+          </>
+        }
+      />
 
       <main id="main" className="flex flex-1 flex-col">
         <section className="container-x flex flex-1 flex-col items-center justify-center pb-20 pt-12 text-center sm:pt-16">
