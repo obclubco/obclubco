@@ -183,7 +183,9 @@ $$;
 
 -- The other guests of those events: their public profile plus the events shared with the
 -- signed-in guest (newest first). Email and phone are only included when that guest chose to
--- share them, and guests who hid their profile are left out. Admins see everyone, in full.
+-- share them, and guests who hid their profile are left out. Who's on an event's list stays
+-- private until the event is over (or 5 hours after it starts, without an end time).
+-- Admins see everyone, in full.
 create or replace function public.get_network()
 returns table (
   id            uuid,
@@ -212,9 +214,9 @@ as $$
     select e.id, e.starts_at
     from public.events e
     cross join me
-    where me.admin or (e.is_published and exists (
-      select 1 from public.event_guests x where x.event_id = e.id and x.guest_id = me.id
-    ))
+    where me.admin or (e.is_published
+      and coalesce(e.ends_at, e.starts_at + interval '5 hours') <= now()
+      and exists (select 1 from public.event_guests x where x.event_id = e.id and x.guest_id = me.id))
   )
   select g.id, g.full_name, g.role, g.company, g.city, g.photo_url, g.bio, g.interests,
          g.looking_for, g.can_help_with, g.linkedin, g.instagram, g.website,

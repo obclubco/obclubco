@@ -158,6 +158,8 @@ still saved either way. To switch it off, delete the row in `telegram_settings`;
 ## What guests can see
 
 - Only the events they're on the list for, and only the other guests of those events.
+- **Who's on a guest list stays private until the event is over.** Before and during an event, guests see the event
+  and how many are coming, not who. Afterwards they see who was there. Admins always see the full list.
 - Other guests' name, photo, role, company, city, bio, "looking for", "can help with", interests and links.
   **Email and phone only when that guest turns on "Share my email and phone".**
 - A guest who turns off **"Show my profile to other guests"** is left out of every guest list (they still see others).

@@ -43,7 +43,9 @@ function EventDetail() {
   const guests = network.filter((g) => g.event_ids.includes(event.id));
   const shown = guests.filter((g) => matchesQuery(g, query));
   const status = eventStatus(event);
-  const total = guests.length + (event.attending ? 1 : 0);
+  // Who's on the list stays private until the event is over (the database doesn't send it before then).
+  const listPrivate = status !== "past" && !me.is_admin;
+  const total = listPrivate ? event.guest_count : guests.length + (event.attending ? 1 : 0);
   const cover = safeUrl(event.cover_image_url);
 
   // How else you know each guest, e.g. "3 events together".
@@ -109,31 +111,44 @@ function EventDetail() {
         </dl>
       </div>
 
-      <section className="mt-16">
-        <div
-          data-reveal
-          className="flex flex-col gap-5 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between"
-        >
-          <h2 className="display text-4xl">
-            {HEADINGS[status]} <span className="text-mute">{total}</span>
+      {listPrivate ? (
+        <section className="mt-16">
+          <h2 data-reveal className="display border-b border-line pb-5 text-4xl">
+            {HEADINGS[status]}
           </h2>
-          {guests.length > 5 && (
-            <SearchInput value={query} onChange={setQuery} placeholder="Search guests" className="sm:w-72" />
-          )}
-        </div>
-
-        {total === 0 ? (
-          <p className="mt-6 text-sm text-mute">Nobody on the guest list yet.</p>
-        ) : (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {event.attending && !query && <GuestCard guest={me} href="/profile/" badge="You" />}
-            {shown.map((g) => (
-              <GuestCard key={g.id} guest={g} note={note(g)} />
-            ))}
+          <p data-reveal className="card grain mt-6 max-w-2xl p-6 text-sm leading-6 text-mute">
+            {event.attending && <span className="text-bone">You&apos;re on the list. </span>}
+            Who else is coming stays private until the event is over. Then you&apos;ll see who was there on this page
+            and under Guests.
+          </p>
+        </section>
+      ) : (
+        <section className="mt-16">
+          <div
+            data-reveal
+            className="flex flex-col gap-5 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between"
+          >
+            <h2 className="display text-4xl">
+              {HEADINGS[status]} <span className="text-mute">{total}</span>
+            </h2>
+            {guests.length > 5 && (
+              <SearchInput value={query} onChange={setQuery} placeholder="Search guests" className="sm:w-72" />
+            )}
           </div>
-        )}
-        {query && shown.length === 0 && <p className="mt-6 text-sm text-mute">No guests match “{query}”.</p>}
-      </section>
+
+          {total === 0 ? (
+            <p className="mt-6 text-sm text-mute">Nobody on the guest list yet.</p>
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {event.attending && !query && <GuestCard guest={me} href="/profile/" badge="You" />}
+              {shown.map((g) => (
+                <GuestCard key={g.id} guest={g} note={note(g)} />
+              ))}
+            </div>
+          )}
+          {query && shown.length === 0 && <p className="mt-6 text-sm text-mute">No guests match “{query}”.</p>}
+        </section>
+      )}
 
       {me.is_admin && <GuestListManager key={event.id} event={event} guests={guests} onChange={reload} />}
     </div>
