@@ -45,7 +45,7 @@ function EventDetail() {
   const status = eventStatus(event);
   // Who's on the list stays private until the event is over (the database doesn't send it before then).
   const listPrivate = status !== "past" && !me.is_admin;
-  const total = listPrivate ? event.guest_count : guests.length + (event.attending ? 1 : 0);
+  const total = guests.length + (event.attending ? 1 : 0);
   const cover = safeUrl(event.cover_image_url);
 
   // How else you know each guest, e.g. "3 events together".
@@ -98,7 +98,8 @@ function EventDetail() {
             { icon: <Calendar className="size-4" />, label: "Date", value: formatDate(event.starts_at, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) },
             { icon: <Clock />, label: "Time", value: timeRange(event.starts_at, event.ends_at) },
             ...(event.location ? [{ icon: <MapPin />, label: "Where", value: event.location }] : []),
-            { icon: <Users className="size-4" />, label: "Guests", value: `${total} ${total === 1 ? "guest" : "guests"}` },
+            // Before the event is over, guests don't see the guest list or how many are on it.
+            ...(listPrivate ? [] : [{ icon: <Users className="size-4" />, label: "Guests", value: `${total} ${total === 1 ? "guest" : "guests"}` }]),
           ].map((row) => (
             <div key={row.label} className="flex items-start gap-4 px-6 py-4">
               <span className="mt-0.5 text-mute">{row.icon}</span>

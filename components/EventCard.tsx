@@ -56,10 +56,17 @@ export function EventCard({ event, note }: { event: NetEvent; note?: string }) {
             </span>
           )}
         </p>
-        <p className="mt-2 text-[11px] tracking-wide text-bone/70">
-          {event.guest_count} {event.guest_count === 1 ? "guest" : "guests"}
-          {note && <span className="text-mute"> · {note}</span>}
-        </p>
+        {(event.guest_count !== null || note) && (
+          <p className="mt-2 text-[11px] tracking-wide text-bone/70">
+            {event.guest_count !== null && `${event.guest_count} ${event.guest_count === 1 ? "guest" : "guests"}`}
+            {note && (
+              <span className="text-mute">
+                {event.guest_count !== null && " · "}
+                {note}
+              </span>
+            )}
+          </p>
+        )}
       </div>
       {cover && (
         // eslint-disable-next-line @next/next/no-img-element

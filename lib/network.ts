@@ -45,7 +45,8 @@ export type NetEvent = {
   is_published: boolean;
   /** Whether the signed-in guest is on this event's guest list (admins also see other events). */
   attending: boolean;
-  guest_count: number;
+  /** Null until the event is over (private before then), except for admins. */
+  guest_count: number | null;
 };
 
 export type AdminGuest = {

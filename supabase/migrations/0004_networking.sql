@@ -150,6 +150,7 @@ grant delete on public.event_guests to authenticated;
 
 -- Events the signed-in guest is on the list for, newest first, with their guest counts.
 -- Admins get every event; `attending` says whether they're on its list themselves.
+-- Like the guest list, the count stays private (null) until the event is over, except for admins.
 create or replace function public.get_my_events()
 returns table (
   id              uuid,
@@ -169,9 +170,11 @@ as $$
   with me as (select public.my_guest_id() as id, public.is_networking_admin() as admin)
   select e.id, e.title, e.description, e.starts_at, e.ends_at, e.location, e.cover_image_url, e.is_published,
          exists (select 1 from public.event_guests x where x.event_id = e.id and x.guest_id = me.id),
-         (select count(*)::int
-            from public.event_guests x join public.guests g on g.id = x.guest_id
-           where x.event_id = e.id and (g.is_visible or g.id = me.id or me.admin))
+         case when me.admin or coalesce(e.ends_at, e.starts_at + interval '5 hours') <= now() then
+           (select count(*)::int
+              from public.event_guests x join public.guests g on g.id = x.guest_id
+             where x.event_id = e.id and (g.is_visible or g.id = me.id or me.admin))
+         end
   from public.events e
   cross join me
   where me.id is not null
