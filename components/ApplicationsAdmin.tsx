@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LeadBadge, LeadNotes } from "@/components/LeadNotes";
 import {
   acceptApplication,
   applyUrl,
@@ -8,9 +9,13 @@ import {
   contactHref,
   deleteApplication,
   getApplications,
+  getLeadNotes,
   isSetupMissing,
+  leadStatus,
   linkParts,
   type Application,
+  type LeadNote,
+  type LeadOutcome,
 } from "@/lib/applications";
 import { eventStatus, formatDate, fromNow, prettyUrl } from "@/lib/format";
 import { errorMessage, useLoad } from "@/lib/hooks";
@@ -18,9 +23,22 @@ import type { NetEvent } from "@/lib/network";
 
 const viaLabel = (a: Application) => CONTACT_OPTIONS.find((o) => o.value === a.contact_via)?.label ?? a.contact_via;
 
-/** Admin page: applications from /apply/. Accept puts the person on the guest list; Delete declines. */
+type Filter = "all" | "to_call" | LeadOutcome;
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "to_call", label: "To call" },
+  { value: "follow_up", label: "Follow-up" },
+  { value: "closed", label: "Closed" },
+  { value: "no", label: "No" },
+];
+
+/**
+ * Admin page: applications from /apply/, worked as leads. Each has call notes (Closed, Follow-up needed or No,
+ * posted to Telegram); Accept puts the person on the guest list; Delete declines.
+ */
 export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; onChanged: () => void }) {
-  const { data, error, reload } = useLoad(getApplications, []);
+  const { data, error, reload } = useLoad(() => Promise.all([getApplications(), getLeadNotes()]), []);
+  const [filter, setFilter] = useState<Filter>("all");
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -69,16 +87,43 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
     }
   }
 
-  const waiting = data?.filter((a) => a.status === "new") ?? [];
-  const accepted = data?.filter((a) => a.status === "accepted") ?? [];
+  const [applications, notes] = data ?? [null, null];
+  // null: call notes aren't set up yet (0008_leads.sql not run).
+  const notesByApp = new Map<string, LeadNote[]>();
+  for (const n of notes ?? []) notesByApp.set(n.application_id, [...(notesByApp.get(n.application_id) ?? []), n]);
+  const statusOf = (a: Application) => leadStatus(notesByApp.get(a.id));
+  const counts = Object.fromEntries(
+    FILTERS.map((f) => [f.value, applications?.filter((a) => f.value === "all" || statusOf(a).outcome === f.value).length ?? 0]),
+  ) as Record<Filter, number>;
+  const shown = (applications ?? [])
+    .filter((a) => filter === "all" || statusOf(a).outcome === filter)
+    // Follow-ups: the soonest date first, those without a date last.
+    .sort((a, b) =>
+      filter === "follow_up" ? (statusOf(a).followUpOn ?? "9999").localeCompare(statusOf(b).followUpOn ?? "9999") : 0,
+    );
+  const newCount = applications?.filter((a) => a.status === "new").length ?? 0;
+  const waiting = shown.filter((a) => a.status === "new");
+  const accepted = shown.filter((a) => a.status === "accepted");
+  const card = (a: Application) => (
+    <ApplicationCard
+      key={a.id}
+      a={a}
+      event={a.event_id ? eventsById.get(a.event_id) : undefined}
+      notes={notes ? (notesByApp.get(a.id) ?? []) : null}
+      busy={busy === a.id}
+      onAccept={() => accept(a)}
+      onDelete={() => remove(a)}
+      onNotesChanged={reload}
+    />
+  );
 
   return (
     <section className="mt-14">
       <div data-reveal className="mb-6 flex flex-col gap-4 border-b border-line pb-4 sm:flex-row sm:items-end sm:justify-between">
         <h2 className="display text-3xl">
           Applications
-          {waiting.length > 0 && (
-            <span className="ml-3 align-middle font-sans text-sm tracking-normal text-mute">{waiting.length} new</span>
+          {newCount > 0 && (
+            <span className="ml-3 align-middle font-sans text-sm tracking-normal text-mute">{newCount} new</span>
           )}
         </h2>
         <button onClick={copyLink} className="btn-ghost px-4 py-2.5 text-xs">
@@ -92,6 +137,28 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
         </p>
       )}
 
+      {applications && notes && applications.length > 0 && (
+        <div role="group" aria-label="Show leads" className="mb-5 flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              aria-pressed={filter === f.value}
+              onClick={() => setFilter(f.value)}
+              className={`rounded-full border px-3.5 py-1.5 text-xs transition duration-300 ease-smooth ${filter === f.value ? "border-bone/70 bg-elevated text-bone" : "border-line text-mute hover:border-bone/30 hover:text-bone"}`}
+            >
+              {f.label} <span className="tabular-nums text-mute">{counts[f.value]}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {applications && notes === null && (
+        <p className="card mb-4 px-5 py-4 text-sm leading-6 text-mute">
+          Call notes aren&apos;t set up in Supabase yet: run{" "}
+          <code className="text-bone">supabase/migrations/0008_leads.sql</code> in its SQL Editor, then reload this page.
+        </p>
+      )}
+
       {error && isSetupMissing(error) ? (
         <p className="card p-6 text-sm leading-6 text-mute">
           Applications aren&apos;t set up in Supabase yet: run{" "}
@@ -100,27 +167,18 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
         </p>
       ) : error ? (
         <p className="card p-6 text-sm text-bad">Couldn&apos;t load applications: {error}</p>
-      ) : !data ? (
+      ) : !applications ? (
         <div className="card grid place-items-center p-10">
           <span className="spinner" role="status" aria-label="Loading" />
         </div>
       ) : waiting.length === 0 ? (
         <p className="card p-6 text-sm leading-6 text-mute">
-          No new applications. Share the application link, or an event&apos;s own link from the Events table below.
+          {filter === "all"
+            ? "No new applications. Share the application link, or an event's own link from the Events table below."
+            : "No applications waiting with this status."}
         </p>
       ) : (
-        <ul className="grid gap-4">
-          {waiting.map((a) => (
-            <ApplicationCard
-              key={a.id}
-              a={a}
-              event={a.event_id ? eventsById.get(a.event_id) : undefined}
-              busy={busy === a.id}
-              onAccept={() => accept(a)}
-              onDelete={() => remove(a)}
-            />
-          ))}
-        </ul>
+        <ul className="grid gap-4">{waiting.map(card)}</ul>
       )}
 
       {accepted.length > 0 && (
@@ -128,22 +186,7 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
           <summary className="cursor-pointer list-none text-sm text-mute transition hover:text-bone [&::-webkit-details-marker]:hidden">
             <span className="inline-block transition group-open:rotate-90">›</span> Accepted ({accepted.length})
           </summary>
-          <ul className="card mt-3 divide-y divide-line">
-            {accepted.map((a) => {
-              const event = a.event_id ? eventsById.get(a.event_id) : undefined;
-              return (
-                <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-sm">
-                  <span className="min-w-0">
-                    {a.full_name} <span className="text-mute">· {event ? event.title : "Any event"}</span>
-                    {a.reviewed_at && <span className="text-mute"> · accepted {fromNow(a.reviewed_at)}</span>}
-                  </span>
-                  <button onClick={() => remove(a)} disabled={busy === a.id} className="text-xs text-mute transition hover:text-bad">
-                    Delete application
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <ul className="mt-3 grid gap-4">{accepted.map(card)}</ul>
         </details>
       )}
     </section>
@@ -153,15 +196,20 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
 function ApplicationCard({
   a,
   event,
+  notes,
   busy,
   onAccept,
   onDelete,
+  onNotesChanged,
 }: {
   a: Application;
   event?: NetEvent;
+  /** null when call notes aren't set up yet. */
+  notes: LeadNote[] | null;
   busy: boolean;
   onAccept: () => void;
   onDelete: () => void;
+  onNotesChanged: () => void;
 }) {
   const over = event && eventStatus(event) === "past";
   const work = [a.role, a.company, a.city].filter(Boolean).join(" · ");
@@ -169,7 +217,13 @@ function ApplicationCard({
     <li className="card p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-base font-medium">{a.full_name}</p>
+          <p className="flex flex-wrap items-center gap-2.5 text-base font-medium">
+            {a.full_name}
+            {notes && <LeadBadge notes={notes} />}
+            {a.status === "accepted" && (
+              <span className="text-[10px] uppercase tracking-widest text-good">On the guest list</span>
+            )}
+          </p>
           <p className="mt-1 text-xs text-mute">
             {event ? (
               <>
@@ -183,9 +237,11 @@ function ApplicationCard({
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <button onClick={onAccept} disabled={busy} className="btn-primary px-5 py-2 text-xs">
-            {busy ? "Working…" : event ? "Accept · add to guest list" : "Accept · add as guest"}
-          </button>
+          {a.status === "new" && (
+            <button onClick={onAccept} disabled={busy} className="btn-primary px-5 py-2 text-xs">
+              {busy ? "Working…" : event ? "Accept · add to guest list" : "Accept · add as guest"}
+            </button>
+          )}
           <button onClick={onDelete} disabled={busy} className="btn-ghost px-4 py-2 text-xs">
             Delete
           </button>
@@ -244,6 +300,7 @@ function ApplicationCard({
           </>
         )}
       </dl>
+      {notes && <LeadNotes applicationId={a.id} name={a.full_name} notes={notes} onChanged={onNotesChanged} />}
     </li>
   );
 }

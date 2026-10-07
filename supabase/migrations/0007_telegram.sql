@@ -72,8 +72,10 @@ begin
 end;
 $$;
 
--- Posts a message to the group. Returns its id, or null (not connected, or Telegram didn't take it).
-create or replace function public.telegram_post(p_text text)
+-- Posts a message to the group, as a reply to p_reply_to when given. Returns its id, or null (not connected,
+-- or Telegram didn't take it).
+drop function if exists public.telegram_post(text);  -- the first version, without replies
+create or replace function public.telegram_post(p_text text, p_reply_to bigint default null)
 returns bigint language plpgsql security definer
 set search_path = ''
 as $$
@@ -88,7 +90,10 @@ begin
   for attempt in 1..2 loop
     v_reply := public.telegram_request(s.bot_token, 'sendMessage', jsonb_build_object(
       'chat_id', s.chat_id, 'text', p_text, 'parse_mode', 'HTML',
-      'link_preview_options', jsonb_build_object('is_disabled', true)));
+      'link_preview_options', jsonb_build_object('is_disabled', true))
+      -- If the message replied to is gone, Telegram still posts this one, just not as a reply.
+      || case when p_reply_to is null then '{}'::jsonb else jsonb_build_object('reply_parameters',
+           jsonb_build_object('message_id', p_reply_to, 'allow_sending_without_reply', true)) end);
     if coalesce((v_reply ->> 'ok')::boolean, false) then
       update public.telegram_settings set last_error = null, last_error_at = null where last_error is not null;
       return (v_reply -> 'result' ->> 'message_id')::bigint;
@@ -296,7 +301,7 @@ $$;
 revoke execute on function public.telegram_html(text)                               from public, anon, authenticated;
 revoke execute on function public.telegram_request(text, text, jsonb, int)          from public, anon, authenticated;
 revoke execute on function public.telegram_failed(text)                             from public, anon, authenticated;
-revoke execute on function public.telegram_post(text)                               from public, anon, authenticated;
+revoke execute on function public.telegram_post(text, bigint)                       from public, anon, authenticated;
 revoke execute on function public.telegram_edit(bigint, text)                       from public, anon, authenticated;
 revoke execute on function public.telegram_application_text(public.applications, text) from public, anon, authenticated;
 revoke execute on function public.applications_to_telegram()                        from public, anon, authenticated;

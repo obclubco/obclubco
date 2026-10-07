@@ -117,6 +117,62 @@ export async function setApplicationsOpen(eventId: string, open: boolean) {
   if (error) throw error;
 }
 
+// ── Leads: call notes (0008_leads.sql) ──
+
+export type LeadOutcome = "closed" | "follow_up" | "no";
+
+export const LEAD_OUTCOMES: { value: LeadOutcome; label: string }[] = [
+  { value: "closed", label: "Closed" },
+  { value: "follow_up", label: "Follow-up needed" },
+  { value: "no", label: "No" },
+];
+
+export type LeadNote = {
+  id: string;
+  application_id: string;
+  outcome: LeadOutcome;
+  body: string;
+  /** "2026-10-15", only with follow_up. */
+  follow_up_on: string | null;
+  author_name: string | null;
+  /** Set when the note was posted to the Telegram group. */
+  telegram_message_id: number | null;
+  created_at: string;
+};
+
+export const LEAD_NOTE_MAX = 3000;
+
+/** Every call note, newest first; null before 0008_leads.sql has been run. */
+export async function getLeadNotes(): Promise<LeadNote[] | null> {
+  const { data, error } = await supabase().from("application_notes").select("*").order("created_at", { ascending: false });
+  if (error && isSetupMissing(error.message)) return null;
+  if (error) throw error;
+  return (data ?? []) as LeadNote[];
+}
+
+/** Saves a call note; the database posts it to the Telegram group. */
+export async function addLeadNote(applicationId: string, outcome: LeadOutcome, body: string, followUpOn: string | null) {
+  const { data, error } = await supabase().rpc("add_lead_note", {
+    p_application_id: applicationId,
+    p_outcome: outcome,
+    p_body: body,
+    p_follow_up_on: outcome === "follow_up" ? followUpOn : null,
+  });
+  if (error) throw error;
+  return data as LeadNote;
+}
+
+export async function deleteLeadNote(id: string) {
+  const { error } = await supabase().from("application_notes").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Where a lead stands: the outcome of the latest call, or "to_call" before the first one. */
+export function leadStatus(notes: LeadNote[] | undefined): { outcome: LeadOutcome | "to_call"; followUpOn: string | null } {
+  const latest = notes?.[0];
+  return latest ? { outcome: latest.outcome, followUpOn: latest.follow_up_on } : { outcome: "to_call", followUpOn: null };
+}
+
 // ── Helpers ──
 
 /** The link to share: the application page, for one event or in general. */
