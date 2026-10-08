@@ -5,6 +5,7 @@ import { Plus } from "@/components/Icons";
 import {
   addLeadNote,
   deleteLeadNote,
+  isSetupMissing,
   LEAD_NOTE_MAX,
   LEAD_OUTCOMES,
   leadStatus,
@@ -195,7 +196,13 @@ function NoteForm({
     try {
       await onSave(outcome, body.trim(), followUpOn || null);
     } catch (err) {
-      setProblem(`Couldn't save: ${errorMessage(err)}`);
+      const message = errorMessage(err);
+      // The site is newer than the database: 0008_leads.sql hasn't been run (in full) since it changed.
+      setProblem(
+        isSetupMissing(message)
+          ? "Couldn't save: the database needs an update. Run supabase/migrations/0008_leads.sql again (the whole file) in the Supabase SQL Editor, then save again."
+          : `Couldn't save: ${message}`,
+      );
       setBusy(false);
     }
   }
