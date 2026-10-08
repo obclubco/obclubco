@@ -3,6 +3,10 @@
 # A repository can only serve one custom domain on GitHub Pages, and this one serves partner.obclub.co.
 # So the site is built here and pushed to the gh-pages branch of a second repository (default:
 # <owner>/networking) that exists only to host it. One-time setup: README → "Put it live".
+#
+# GitHub Pages can't send security headers (HSTS, X-Frame-Options, …). With the CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID secrets set, the site is also published to Cloudflare Pages, which sends the headers in
+# out/_headers (README → Security headers).
 name: Deploy networking.obclub.co
 
 on:
@@ -81,6 +85,32 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_KEY }}
           NEXT_PUBLIC_SITE_URL: https://${{ env.DOMAIN }}
+
+      - name: Cloudflare Pages set up?
+        id: cloudflare
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Publishing to GitHub Pages only, which can't send security headers. To send them, add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets (README → Security headers)."
+          fi
+
+      # Before the GitHub Pages step, which turns out/ into a git repository.
+      - name: Publish to Cloudflare Pages (with the security headers)
+        if: steps.cloudflare.outputs.enabled == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'obc-networking' }}
+        run: |
+          test -f out/_headers || { echo "::error::out/_headers is missing: npm run build should write it."; exit 1; }
+          # The first time, this creates the project; after that it already exists.
+          npx --yes wrangler@4 pages project create "$PROJECT" --production-branch=main >/dev/null 2>&1 || true
+          npx --yes wrangler@4 pages deploy out --project-name="$PROJECT" --branch=main --commit-dirty=true
 
       - name: Publish to ${{ env.PAGES_REPO }}
         working-directory: out

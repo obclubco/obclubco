@@ -16,6 +16,8 @@ export const metadata: Metadata = {
   // Installed on iPhone/iPad: full-screen, dark status bar, "OBC Network" under the icon.
   appleWebApp: { capable: true, title: "OBC Network", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
+  // Other sites see only "networking.obclub.co" when someone follows a link from here, never the page or its query.
+  referrer: "strict-origin-when-cross-origin",
 };
 
 export const viewport: Viewport = {
@@ -25,9 +27,20 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Clickjacking: inside another site's frame the page hides itself and tries to take over the whole tab. The
+// X-Frame-Options and frame-ancestors headers block framing outright (scripts/security-headers.mjs), but not every
+// host can send headers (GitHub Pages can't). Its hash is allowed by the Content-Security-Policy.
+const FRAME_GUARD = `if (window.top !== window.self) {
+  document.documentElement.style.display = "none";
+  try { window.top.location.replace(window.location.href); } catch (e) {}
+}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${serif.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: FRAME_GUARD }} />
+      </head>
       <body>
         {/* Without JavaScript, show everything that would otherwise animate in. */}
         <noscript>

@@ -189,6 +189,63 @@ The database enforces all of this (row-level security). Other guests' profiles a
 leaves out private fields; guests can only change their own profile fields, never their email or admin flag.
 Profile photos go to the `guest-photos` storage bucket as public links, like any profile picture.
 
+## Security headers
+
+Every build ([`scripts/security-headers.mjs`](scripts/security-headers.mjs), run by `npm run build`) gives the site:
+
+- **A Content-Security-Policy.** Scripts only from the site itself, with no `'unsafe-inline'` or `'unsafe-eval'`.
+  The few small scripts Next.js puts inside each page are allowed by their SHA-256 hashes, worked out after each
+  build. Connections go only to the site and its Supabase project, images to the site and `https:` (photo and cover
+  links), and no plugins, `<base>` tricks or forms posting elsewhere.
+- **A referrer policy** (`strict-origin-when-cross-origin`) and **a frame guard**: inside another site's frame, the
+  page hides itself (clickjacking).
+- **`out/_headers`** with the headers: `Content-Security-Policy` (plus `frame-ancestors 'none'`),
+  `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` and
+  `Permissions-Policy`. It also removes the host's default `Access-Control-Allow-Origin: *`.
+
+**GitHub Pages can't send response headers**, so there the policy and referrer rule go into each page as `<meta>`
+tags, which cover scripts, connections and images. HSTS, X-Frame-Options, X-Content-Type-Options, Permissions-Policy,
+`frame-ancestors` and the `Access-Control-Allow-Origin: *` that GitHub adds to everything need a host that sends
+`out/_headers`. Use Cloudflare Pages (free) for that:
+
+1. Make a free account at [dash.cloudflare.com](https://dash.cloudflare.com). Copy your **Account ID** from
+   **Workers & Pages** (right-hand side).
+2. **My Profile → API Tokens → Create Token → Create Custom Token**. Name: `networking deploy`. Permissions:
+   **Account · Cloudflare Pages · Edit** → Continue → Create Token, and copy the token.
+3. This repository (`obclubco/obclubco`) → **Settings → Secrets and variables → Actions → Secrets tab**:
+   `CLOUDFLARE_API_TOKEN` (the token) and `CLOUDFLARE_ACCOUNT_ID`.
+4. **Actions → Deploy networking.obclub.co → Run workflow** on the `networking` branch. It creates the Cloudflare Pages
+   project `obc-networking` (another name: an Actions variable `CLOUDFLARE_PAGES_PROJECT`) and publishes the site
+   there as well as to GitHub Pages. Check that `https://obc-networking.pages.dev` works and you can log in.
+5. Cloudflare → **Workers & Pages → obc-networking → Custom domains → Set up a custom domain** →
+   `networking.obclub.co`. Then, where obclub.co's DNS is managed, change the `networking` CNAME from
+   `obclubco.github.io` to `obc-networking.pages.dev` (if obclub.co's DNS is on Cloudflare, Cloudflare does it).
+6. A few minutes later, check the headers on [securityheaders.com](https://securityheaders.com) or with your scanner.
+
+HSTS tells browsers to use only HTTPS for networking.obclub.co for a year. That's fine because the site is HTTPS-only.
+Its `preload` word does nothing unless obclub.co itself is submitted to hstspreload.org. Only do that if every
+obclub.co address works over HTTPS.
+
+The Supabase API answers requests from any website, and that's how the site reaches it. What protects the data
+there is the login and the database's row-level security, not CORS.
+
+### Email records for obclub.co (SPF and DMARC)
+
+These stop other people sending email that pretends to come from an @obclub.co address. Add them where obclub.co's
+DNS is managed. This site doesn't send email from obclub.co. If nobody else does either:
+
+| Type | Name / Host | Value |
+| --- | --- | --- |
+| `TXT` | `@` | `v=spf1 -all` |
+| `TXT` | `_dmarc` | `v=DMARC1; p=reject; adkim=s; aspf=s` |
+
+If someone does send from an @obclub.co address (Google Workspace, Zoho, a newsletter tool), list that service in
+SPF instead, e.g. `v=spf1 include:_spf.google.com ~all` for Google Workspace. Start DMARC at `p=quarantine` and
+move to `p=reject` once real email still arrives. Only one SPF record is allowed: if `@` already has a
+`v=spf1 …` TXT record, edit it instead of adding another. The `_dmarc` record also covers networking.obclub.co and
+other subdomains. To get daily reports, add `; rua=mailto:dmarc@obclub.co` (a mailbox on obclub.co) to the DMARC
+value.
+
 ## Install as an app
 
 The site is a Progressive Web App, like the partner site: **Install app** in the header (Chrome, Edge, Android) or
@@ -223,6 +280,7 @@ supabase/migrations/0006_applications.sql applications from the public page
 supabase/migrations/0007_telegram.sql     applications posted to a Telegram group (optional)
 supabase/migrations/0008_leads.sql        call notes on applications (admins only)
 supabase/seed-networking.sql        example content
+scripts/security-headers.mjs        after each build: Content-Security-Policy in every page, out/_headers
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co
 ```
 
