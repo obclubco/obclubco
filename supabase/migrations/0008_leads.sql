@@ -101,3 +101,15 @@ revoke execute on function public.add_lead_note(uuid, text, text, date)    from 
 revoke execute on function public.update_lead_note(uuid, text, text, date) from public, anon;
 grant  execute on function public.add_lead_note(uuid, text, text, date)    to authenticated;
 grant  execute on function public.update_lead_note(uuid, text, text, date) to authenticated;
+
+-- ─────────────────────────────────────────────────────────────
+-- 3. Check: the result should say true, true and how many call notes there are.
+-- ─────────────────────────────────────────────────────────────
+select
+  (to_regprocedure('public.update_lead_note(uuid, text, text, date)') is not null
+    and exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'application_notes' and column_name = 'updated_at'))
+    as "editing works",
+  not exists (select 1 from pg_trigger t where t.tgrelid = 'public.application_notes'::regclass and not t.tgisinternal)
+    as "telegram off for notes",
+  (select count(*) from public.application_notes) as "call notes kept";

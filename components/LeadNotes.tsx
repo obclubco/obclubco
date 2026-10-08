@@ -200,7 +200,7 @@ function NoteForm({
       // The site is newer than the database: 0008_leads.sql hasn't been run (in full) since it changed.
       setProblem(
         isSetupMissing(message)
-          ? "Couldn't save: the database needs an update. Run supabase/migrations/0008_leads.sql again (the whole file) in the Supabase SQL Editor, then save again."
+          ? `Couldn't save: the database needs an update. Run supabase/migrations/0008_leads.sql again (the whole file) in the Supabase SQL Editor, then save again. (${message})`
           : `Couldn't save: ${message}`,
       );
       setBusy(false);
