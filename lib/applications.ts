@@ -119,12 +119,13 @@ export async function setApplicationsOpen(eventId: string, open: boolean) {
 
 // ── Leads: call notes (0008_leads.sql) ──
 
+/** "no" only appears on notes written before it was dropped from the form. */
 export type LeadOutcome = "closed" | "follow_up" | "no";
 
-export const LEAD_OUTCOMES: { value: LeadOutcome; label: string }[] = [
+/** The choices under "How did it go?". */
+export const LEAD_OUTCOMES: { value: Exclude<LeadOutcome, "no">; label: string }[] = [
   { value: "closed", label: "Closed" },
   { value: "follow_up", label: "Follow-up needed" },
-  { value: "no", label: "No" },
 ];
 
 export type LeadNote = {
@@ -135,9 +136,9 @@ export type LeadNote = {
   /** "2026-10-15", only with follow_up. */
   follow_up_on: string | null;
   author_name: string | null;
-  /** Set when the note was posted to the Telegram group. */
-  telegram_message_id: number | null;
   created_at: string;
+  /** Set once the note has been edited. */
+  updated_at: string | null;
 };
 
 export const LEAD_NOTE_MAX = 3000;
@@ -150,10 +151,21 @@ export async function getLeadNotes(): Promise<LeadNote[] | null> {
   return (data ?? []) as LeadNote[];
 }
 
-/** Saves a call note; the database posts it to the Telegram group. */
 export async function addLeadNote(applicationId: string, outcome: LeadOutcome, body: string, followUpOn: string | null) {
   const { data, error } = await supabase().rpc("add_lead_note", {
     p_application_id: applicationId,
+    p_outcome: outcome,
+    p_body: body,
+    p_follow_up_on: outcome === "follow_up" ? followUpOn : null,
+  });
+  if (error) throw error;
+  return data as LeadNote;
+}
+
+/** Changes a note in place. */
+export async function updateLeadNote(id: string, outcome: LeadOutcome, body: string, followUpOn: string | null) {
+  const { data, error } = await supabase().rpc("update_lead_note", {
+    p_id: id,
     p_outcome: outcome,
     p_body: body,
     p_follow_up_on: outcome === "follow_up" ? followUpOn : null,

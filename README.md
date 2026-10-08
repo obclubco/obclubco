@@ -30,8 +30,9 @@ project, but then each email has a single login for both sites.)
    from the Table Editor) and [`supabase/migrations/0006_applications.sql`](supabase/migrations/0006_applications.sql)
    (the application page). Optional: [`supabase/migrations/0007_telegram.sql`](supabase/migrations/0007_telegram.sql)
    posts applications to a Telegram group (see *Applications in Telegram* below), and
-   [`supabase/migrations/0008_leads.sql`](supabase/migrations/0008_leads.sql) adds call notes (see *Leads* below). Those are the only files the networking site needs (`0001` to `0003` belong to the partner
-   site, on the `partner` branch). Running them again is safe: nothing that exists is removed or changed.
+   [`supabase/migrations/0008_leads.sql`](supabase/migrations/0008_leads.sql) adds call notes (see *Leads* below).
+   Those are the only files the networking site needs (`0001` to `0003` belong to the partner site, on the `partner`
+   branch). Running them again is safe: nothing that exists is removed or changed.
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
    the first guest's email to your own before running it, so you're an admin.
 4. **Authentication → Sign In / Providers**: keep **Email** on and turn **off** "Allow new users to sign up".
@@ -161,17 +162,18 @@ still saved either way. To switch it off, delete the row in `telegram_settings`;
 Every application on the Admin page is a lead with its own call notes (run
 [`supabase/migrations/0008_leads.sql`](supabase/migrations/0008_leads.sql) once to switch them on).
 
-- After a call, **Add call notes** → what you talked about → how it went: **Closed**, **Follow-up needed** (with a
-  date if you like) or **No** → **Save**. Each note is posted to the Telegram group as a reply under the person's
-  application, signed with your name, so the group sees the whole story of each lead in one thread.
-- The badge on each application shows where it stands after the latest call: *To call*, *Closed*,
-  *Follow-up · date* (red once the date has passed) or *No*. The buttons above the list show just one kind, with
-  counts; *Follow-up* lists the soonest date first.
+- After a call, **Add call notes** → what you talked about → how it went: **Closed** or **Follow-up needed** (with a
+  date if you like) → **Save**. Each note is signed with your name.
+- **Edit** on a note changes it in place (the words, how it went, the date) instead of adding a new one; it then
+  says *edited*. **Delete** removes it. Deleting an application deletes its notes too.
+- The badge on each application shows where it stands after the latest call: *To call*, *Closed* or
+  *Follow-up · date* (red once the date has passed). The buttons above the list show just one kind, with counts;
+  *Follow-up* lists the soonest date first.
 - Closing a lead doesn't put them on the guest list by itself: press **Accept** for that. Accepted applications keep
   their notes (under *Accepted*).
-- **Delete** on a note removes it here and from the Telegram group. Deleting an application deletes its notes too.
 
-Only admins can read or write call notes; they're also in Supabase → Table Editor → `application_notes`.
+Call notes stay on the site: they aren't posted to Telegram (only new applications are). Only admins can read or
+write them; they're also in Supabase → Table Editor → `application_notes`.
 
 ## What guests can see
 
@@ -219,7 +221,7 @@ supabase/migrations/0004_networking.sql   database: tables, security rules, func
 supabase/migrations/0005_logins.sql       logins and passwords from the guests table
 supabase/migrations/0006_applications.sql applications from the public page
 supabase/migrations/0007_telegram.sql     applications posted to a Telegram group (optional)
-supabase/migrations/0008_leads.sql        call notes on applications, posted to Telegram
+supabase/migrations/0008_leads.sql        call notes on applications (admins only)
 supabase/seed-networking.sql        example content
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co
 ```

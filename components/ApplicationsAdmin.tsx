@@ -29,12 +29,11 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "to_call", label: "To call" },
   { value: "follow_up", label: "Follow-up" },
   { value: "closed", label: "Closed" },
-  { value: "no", label: "No" },
 ];
 
 /**
- * Admin page: applications from /apply/, worked as leads. Each has call notes (Closed, Follow-up needed or No,
- * posted to Telegram); Accept puts the person on the guest list; Delete declines.
+ * Admin page: applications from /apply/, worked as leads. Each has call notes (Closed or Follow-up needed);
+ * Accept puts the person on the guest list; Delete declines.
  */
 export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; onChanged: () => void }) {
   const { data, error, reload } = useLoad(() => Promise.all([getApplications(), getLeadNotes()]), []);
