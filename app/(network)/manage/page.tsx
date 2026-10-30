@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApplicationsAdmin } from "@/components/ApplicationsAdmin";
+import { ArchivesAdmin } from "@/components/ArchivesAdmin";
 import { useMe } from "@/components/GuestGate";
 import { EyeOff } from "@/components/Icons";
 import { SearchInput } from "@/components/SearchInput";
 import { SplitWords } from "@/components/SplitWords";
 import { ErrorState, Loading } from "@/components/States";
 import { eventStatus, formatDate } from "@/lib/format";
-import { applyUrl, getOpenEventIds, setApplicationsOpen } from "@/lib/applications";
+import { applyUrl, getApplications, getLeadNotes, getOpenEventIds, setApplicationsOpen } from "@/lib/applications";
+import { archiveError, archiveGuest, getArchivedGuests } from "@/lib/archive";
 import { errorMessage, useLoad, usePageTitle } from "@/lib/hooks";
-import { getAdminOverview, getMyEvents, type NetEvent } from "@/lib/network";
+import { getAdminOverview, getMyEvents, type AdminGuest, type NetEvent } from "@/lib/network";
 
 const fmt = (iso: string | null) => (iso ? formatDate(iso, { day: "numeric", month: "short", year: "numeric" }) : "—");
 
@@ -26,18 +28,27 @@ export default function ManagePage() {
   const [openIds, setOpenIds] = useState<Set<string> | null>(null);
   const [copiedEvent, setCopiedEvent] = useState<string | null>(null);
   const [eventsNote, setEventsNote] = useState<string | null>(null);
+  const [guestsNote, setGuestsNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [archiving, setArchiving] = useState<string | null>(null);
   useEffect(() => {
     if (!me.is_admin) router.replace("/home/");
   }, [me.is_admin, router]);
   const { data, error, reload } = useLoad(
-    () => (me.is_admin ? Promise.all([getMyEvents(), getAdminOverview(), getOpenEventIds()]) : Promise.resolve(null)),
+    () =>
+      me.is_admin
+        ? Promise.all([getMyEvents(), getAdminOverview(), getOpenEventIds(), getArchivedGuests()])
+        : Promise.resolve(null),
     [me.is_admin],
   );
+  // Applications and call notes: the Applications section and Archives share them.
+  const apps = useLoad(() => (me.is_admin ? Promise.all([getApplications(), getLeadNotes()]) : Promise.resolve(null)), [
+    me.is_admin,
+  ]);
 
   if (!me.is_admin) return <Loading />;
   if (error) return <ErrorState message={error} />;
   if (!data) return <Loading />;
-  const [events, guests, loadedOpenIds] = data;
+  const [events, guests, loadedOpenIds, archivedGuests] = data;
   // Null until 0006_applications.sql has been run in Supabase: no switches then.
   const open = openIds ?? loadedOpenIds ?? new Set<string>();
 
@@ -69,6 +80,26 @@ export default function ManagePage() {
   const q = query.trim().toLowerCase();
   const shown = guests.filter((g) => !q || [g.full_name, g.email, g.company, g.role].some((v) => v?.toLowerCase().includes(q)));
 
+  async function archive(g: AdminGuest) {
+    if (
+      !window.confirm(
+        `Archive ${g.full_name}? They're taken off every guest list on the site and can't log in until you restore them from Archives.`,
+      )
+    )
+      return;
+    setArchiving(g.id);
+    setGuestsNote(null);
+    try {
+      await archiveGuest(g.id);
+      setGuestsNote({ ok: true, text: `${g.full_name} is archived. Restore them from Archives at the bottom of this page.` });
+      reload();
+    } catch (err) {
+      setGuestsNote({ ok: false, text: `Couldn't archive ${g.full_name}: ${archiveError(errorMessage(err))}` });
+    } finally {
+      setArchiving(null);
+    }
+  }
+
   async function copyEmails() {
     try {
       await navigator.clipboard.writeText(withoutLogin.map((g) => g.email).join("\n"));
@@ -93,7 +124,9 @@ export default function ManagePage() {
           <span className="text-bone">Logins</span>: in Supabase (Table Editor → <code className="text-bone">guests</code>), type a
           password in <code className="text-bone">set_password</code> and send it to them.{" "}
           <span className="text-bone">Applications</span>: switch them on for an event below and share its link; accepting
-          someone puts them on that event&apos;s guest list.
+          someone puts them on that event&apos;s guest list, and Archive moves the ones you won&apos;t accept to Archives.{" "}
+          <span className="text-bone">Removing someone</span>: Archive in the Guests table. Archives, at the bottom, keeps
+          everything until you restore it or delete it for good.
         </p>
       </div>
 
@@ -114,7 +147,7 @@ export default function ManagePage() {
         ))}
       </div>
 
-      <ApplicationsAdmin events={events} onChanged={reload} />
+      <ApplicationsAdmin events={events} apps={apps} onChanged={reload} />
 
       <section className="mt-14">
         <h2 data-reveal className="display mb-6 border-b border-line pb-4 text-3xl">
@@ -209,8 +242,13 @@ export default function ManagePage() {
             <SearchInput value={query} onChange={setQuery} placeholder="Search guests" className="sm:w-64" />
           </div>
         </div>
+        {guestsNote && (
+          <p role="status" className={`enter card mb-4 px-5 py-4 text-sm ${guestsNote.ok ? "text-good" : "text-bad"}`}>
+            {guestsNote.text}
+          </p>
+        )}
         <div data-reveal className="card overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="border-b border-line text-[11px] uppercase tracking-widest text-mute">
               <tr>
                 <th className="px-5 py-4 font-medium">Guest</th>
@@ -218,6 +256,9 @@ export default function ManagePage() {
                 <th className="px-5 py-4 font-medium">Events</th>
                 <th className="px-5 py-4 font-medium">Last event</th>
                 <th className="px-5 py-4 font-medium">Login</th>
+                <th className="px-5 py-4 font-medium">
+                  <span className="sr-only">Archive</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -253,12 +294,26 @@ export default function ManagePage() {
                       <span className="text-mute">No login yet</span>
                     )}
                   </td>
+                  <td className="px-5 py-4 text-right">
+                    {g.id !== me.id && (
+                      <button
+                        onClick={() => archive(g)}
+                        disabled={archiving === g.id}
+                        className="text-xs text-mute underline decoration-line underline-offset-4 transition hover:text-bone hover:decoration-bone/60"
+                        aria-label={`Archive ${g.full_name}`}
+                      >
+                        {archiving === g.id ? "Archiving…" : "Archive"}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+
+      <ArchivesAdmin events={events} apps={apps} guests={archivedGuests} onGuestsChanged={reload} />
     </div>
   );
 }

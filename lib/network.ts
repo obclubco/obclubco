@@ -64,7 +64,8 @@ export type AdminGuest = {
   last_sign_in_at: string | null;
 };
 
-export type AddGuestsResult = { added: number; created: number; missing: string[] };
+/** `archived`: emails of archived profiles, left out (missing before 0009_archive.sql has been run). */
+export type AddGuestsResult = { added: number; created: number; missing: string[]; archived?: string[] };
 
 const ME_COLUMNS =
   "id, email, is_admin, full_name, role, company, city, photo_url, bio, interests, looking_for, can_help_with, linkedin, instagram, website, phone, share_contact, is_visible";

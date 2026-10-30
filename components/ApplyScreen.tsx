@@ -134,9 +134,9 @@ function Privacy() {
     ["What for", "Deciding who to invite, and getting back to you about it."],
     [
       "How long",
-      "If we don't invite you, we delete your application. If we do, your name and details start your guest profile on this site, which you can edit or hide.",
+      "If we don't invite you this time, we keep your application so we can think of you for later events. If we do, your name and details start your guest profile on this site, which you can edit or hide.",
     ],
-    ["Changed your mind?", "Tell us when we get in touch, and we'll delete your application."],
+    ["Changed your mind?", "Tell us any time, and we'll delete your application."],
   ];
   return (
     <section id="privacy" className="mt-16 scroll-mt-28 border-t border-line pt-10">

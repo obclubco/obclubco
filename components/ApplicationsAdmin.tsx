@@ -7,9 +7,6 @@ import {
   applyUrl,
   CONTACT_OPTIONS,
   contactHref,
-  deleteApplication,
-  getApplications,
-  getLeadNotes,
   isSetupMissing,
   leadStatus,
   linkParts,
@@ -17,9 +14,24 @@ import {
   type LeadNote,
   type LeadOutcome,
 } from "@/lib/applications";
+import { archiveApplication, archiveError, restoreApplication } from "@/lib/archive";
 import { eventStatus, formatDate, fromNow, prettyUrl } from "@/lib/format";
-import { errorMessage, useLoad } from "@/lib/hooks";
+import { errorMessage } from "@/lib/hooks";
 import type { NetEvent } from "@/lib/network";
+
+/** Applications and their call notes, loaded by the Admin page and shared with Archives. */
+export type ApplicationsState = {
+  data?: [Application[], LeadNote[] | null] | null;
+  error?: string;
+  reload: () => void;
+};
+
+/** Call notes by application (empty lists until 0008_leads.sql has been run: notes are null then). */
+export function notesByApplication(notes: LeadNote[] | null) {
+  const map = new Map<string, LeadNote[]>();
+  for (const n of notes ?? []) map.set(n.application_id, [...(map.get(n.application_id) ?? []), n]);
+  return map;
+}
 
 const viaLabel = (a: Application) => CONTACT_OPTIONS.find((o) => o.value === a.contact_via)?.label ?? a.contact_via;
 
@@ -33,13 +45,22 @@ const FILTERS: { value: Filter; label: string }[] = [
 
 /**
  * Admin page: applications from /apply/, worked as leads. Each has call notes (Closed or Follow-up needed);
- * Accept puts the person on the guest list; Delete declines.
+ * Accept puts the person on the guest list; Archive moves a lead you won't accept to Archives (with Undo).
  */
-export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; onChanged: () => void }) {
-  const { data, error, reload } = useLoad(() => Promise.all([getApplications(), getLeadNotes()]), []);
+export function ApplicationsAdmin({
+  events,
+  apps,
+  onChanged,
+}: {
+  events: NetEvent[];
+  apps: ApplicationsState;
+  /** The guest list changed (someone was accepted). */
+  onChanged: () => void;
+}) {
+  const { data, error, reload } = apps;
   const [filter, setFilter] = useState<Filter>("all");
   const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string; undo?: Application } | null>(null);
   const [copied, setCopied] = useState(false);
   const eventsById = new Map(events.map((e) => [e.id, e]));
 
@@ -72,24 +93,36 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
     }
   }
 
-  async function remove(a: Application) {
-    if (!window.confirm(`Delete ${a.full_name}'s application? This can't be undone.`)) return;
+  async function archive(a: Application) {
     setBusy(a.id);
     setNotice(null);
     try {
-      await deleteApplication(a.id);
+      await archiveApplication(a.id);
+      setNotice({ ok: true, text: `${a.full_name} moved to Archives.`, undo: a });
       reload();
     } catch (e) {
-      setNotice({ ok: false, text: `Couldn't delete: ${errorMessage(e)}` });
+      setNotice({ ok: false, text: `Couldn't archive: ${archiveError(errorMessage(e))}` });
     } finally {
       setBusy(null);
     }
   }
 
-  const [applications, notes] = data ?? [null, null];
+  async function undo(a: Application) {
+    setNotice(null);
+    try {
+      await restoreApplication(a.id);
+      setNotice({ ok: true, text: `${a.full_name} is back with the leads.` });
+      reload();
+    } catch (e) {
+      setNotice({ ok: false, text: `Couldn't bring it back: ${archiveError(errorMessage(e))}` });
+    }
+  }
+
+  const [all, notes] = data ?? [null, null];
+  // Archived leads are in Archives, at the bottom of the Admin page.
+  const applications = all?.filter((a) => a.status !== "archived") ?? null;
   // null: call notes aren't set up yet (0008_leads.sql not run).
-  const notesByApp = new Map<string, LeadNote[]>();
-  for (const n of notes ?? []) notesByApp.set(n.application_id, [...(notesByApp.get(n.application_id) ?? []), n]);
+  const notesByApp = notesByApplication(notes);
   const statusOf = (a: Application) => leadStatus(notesByApp.get(a.id));
   const counts = Object.fromEntries(
     FILTERS.map((f) => [f.value, applications?.filter((a) => f.value === "all" || statusOf(a).outcome === f.value).length ?? 0]),
@@ -109,10 +142,19 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
       a={a}
       event={a.event_id ? eventsById.get(a.event_id) : undefined}
       notes={notes ? (notesByApp.get(a.id) ?? []) : null}
-      busy={busy === a.id}
-      onAccept={() => accept(a)}
-      onDelete={() => remove(a)}
       onNotesChanged={reload}
+      actions={
+        a.status === "new" && (
+          <>
+            <button onClick={() => accept(a)} disabled={busy === a.id} className="btn-primary px-5 py-2 text-xs">
+              {busy === a.id ? "Working…" : a.event_id && eventsById.has(a.event_id) ? "Accept · add to guest list" : "Accept · add as guest"}
+            </button>
+            <button onClick={() => archive(a)} disabled={busy === a.id} className="btn-ghost px-4 py-2 text-xs">
+              Archive
+            </button>
+          </>
+        )
+      }
     />
   );
 
@@ -133,6 +175,15 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
       {notice && (
         <p role="status" className={`enter card mb-4 px-5 py-4 text-sm ${notice.ok ? "text-good" : "text-bad"}`}>
           {notice.text}
+          {notice.undo && (
+            <button
+              type="button"
+              onClick={() => undo(notice.undo!)}
+              className="ml-3 text-bone underline decoration-bone/40 underline-offset-4 transition hover:decoration-bone"
+            >
+              Undo
+            </button>
+          )}
         </p>
       )}
 
@@ -192,22 +243,19 @@ export function ApplicationsAdmin({ events, onChanged }: { events: NetEvent[]; o
   );
 }
 
-function ApplicationCard({
+/** One application with its details and call notes; `actions` are the buttons top right. */
+export function ApplicationCard({
   a,
   event,
   notes,
-  busy,
-  onAccept,
-  onDelete,
+  actions,
   onNotesChanged,
 }: {
   a: Application;
   event?: NetEvent;
   /** null when call notes aren't set up yet. */
   notes: LeadNote[] | null;
-  busy: boolean;
-  onAccept: () => void;
-  onDelete: () => void;
+  actions?: React.ReactNode;
   onNotesChanged: () => void;
 }) {
   const over = event && eventStatus(event) === "past";
@@ -232,19 +280,11 @@ function ApplicationCard({
               "Any event"
             )}{" "}
             · applied {fromNow(a.created_at)}
-            {over && <span className="text-accent"> · this event is over</span>}
+            {a.status === "archived" && a.archived_at && <> · archived {fromNow(a.archived_at)}</>}
+            {over && a.status !== "archived" && <span className="text-accent"> · this event is over</span>}
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
-          {a.status === "new" && (
-            <button onClick={onAccept} disabled={busy} className="btn-primary px-5 py-2 text-xs">
-              {busy ? "Working…" : event ? "Accept · add to guest list" : "Accept · add as guest"}
-            </button>
-          )}
-          <button onClick={onDelete} disabled={busy} className="btn-ghost px-4 py-2 text-xs">
-            Delete
-          </button>
-        </div>
+        {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
       </div>
 
       <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-x-4 sm:gap-y-2.5">

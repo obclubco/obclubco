@@ -49,10 +49,13 @@ export type ApplicationInput = {
 
 export type Application = Omit<ApplicationInput, "consent" | "trap"> & {
   id: string;
-  status: "new" | "accepted";
+  /** "archived": moved to Archives on the Admin page (0009_archive.sql). */
+  status: "new" | "accepted" | "archived";
   guest_id: string | null;
   created_at: string;
   reviewed_at: string | null;
+  /** Missing before 0009_archive.sql has been run. */
+  archived_at?: string | null;
 };
 
 /** Same limits as the database. */
@@ -94,9 +97,11 @@ export async function acceptApplication(id: string): Promise<string> {
   return data as string;
 }
 
+/** Deletes an archived application for good (the database refuses any other). */
 export async function deleteApplication(id: string) {
-  const { error } = await supabase().from("applications").delete().eq("id", id);
+  const { data, error } = await supabase().from("applications").delete().eq("id", id).select("id");
   if (error) throw error;
+  if (!data?.length) throw new Error("Only archived leads can be deleted.");
 }
 
 /** Ids of the events currently taking applications, or null before 0006_applications.sql has been run. */

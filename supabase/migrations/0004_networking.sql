@@ -9,7 +9,8 @@
 -- 1. Guests: who may log in, and everyone's profile
 -- ─────────────────────────────────────────────────────────────
 -- One row per person. The OBC team adds the row (email + name); guests fill in the rest after
--- logging in. Deleting a row removes that person from the site and from every guest list.
+-- logging in. Archiving someone (Admin page) hides them from every list and stops their login until
+-- they're restored; deleting the row removes them for good.
 create table if not exists public.guests (
   id            uuid primary key default gen_random_uuid(),
   email         text not null unique check (email = lower(trim(email)) and email like '%_@_%'),
@@ -29,9 +30,11 @@ create table if not exists public.guests (
   share_contact boolean not null default false, -- show email + phone to guests they've met
   is_visible    boolean not null default true,  -- false = left out of other guests' lists
   is_admin      boolean not null default false, -- OBC team: sees every event and guest, manages guest lists
+  archived_at   timestamptz,                    -- set: archived (in Archives on the Admin page, can't log in)
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+alter table public.guests add column if not exists archived_at timestamptz;
 
 -- Emails are stored lowercase (so "Jane@Example.com" typed in the Table Editor still matches the login).
 create or replace function public.guests_before_write()
@@ -50,12 +53,13 @@ create or replace trigger guests_before_write
   before insert or update on public.guests
   for each row execute function public.guests_before_write();
 
--- The signed-in person's guest id (null if their email isn't on the guest list).
+-- The signed-in person's guest id (null if their email isn't on the guest list, or they're archived).
 create or replace function public.my_guest_id()
 returns uuid language sql stable security definer
 set search_path = ''
 as $$
-  select g.id from public.guests g where g.email = lower(coalesce(auth.jwt() ->> 'email', ''))
+  select g.id from public.guests g
+  where g.email = lower(coalesce(auth.jwt() ->> 'email', '')) and g.archived_at is null
 $$;
 
 create or replace function public.is_networking_admin()
@@ -64,7 +68,7 @@ set search_path = ''
 as $$
   select exists (
     select 1 from public.guests g
-    where g.email = lower(coalesce(auth.jwt() ->> 'email', '')) and g.is_admin
+    where g.email = lower(coalesce(auth.jwt() ->> 'email', '')) and g.is_admin and g.archived_at is null
   )
 $$;
 
@@ -173,7 +177,7 @@ as $$
          case when me.admin or coalesce(e.ends_at, e.starts_at + interval '5 hours') <= now() then
            (select count(*)::int
               from public.event_guests x join public.guests g on g.id = x.guest_id
-             where x.event_id = e.id and (g.is_visible or g.id = me.id or me.admin))
+             where x.event_id = e.id and g.archived_at is null and (g.is_visible or g.id = me.id or me.admin))
          end
   from public.events e
   cross join me
@@ -188,7 +192,7 @@ $$;
 -- signed-in guest (newest first). Email and phone are only included when that guest chose to
 -- share them, and guests who hid their profile are left out. Who's on an event's list stays
 -- private until the event is over (or 5 hours after it starts, without an end time).
--- Admins see everyone, in full.
+-- Admins see everyone, in full. Archived guests are left out for everyone.
 create or replace function public.get_network()
 returns table (
   id            uuid,
@@ -231,12 +235,12 @@ as $$
   join my_events m on m.id = eg.event_id
   join public.guests g on g.id = eg.guest_id
   cross join me
-  where me.id is not null and g.id <> me.id and (g.is_visible or me.admin)
+  where me.id is not null and g.id <> me.id and g.archived_at is null and (g.is_visible or me.admin)
   group by g.id, me.admin
   order by g.full_name
 $$;
 
--- Admins: every guest with their number of events and whether they have a login yet.
+-- Admins: every guest (not archived) with their number of events and whether they have a login yet.
 create or replace function public.admin_guest_overview()
 returns table (
   id              uuid,
@@ -268,25 +272,29 @@ begin
            u.last_sign_in_at
     from public.guests g
     left join auth.users u on lower(u.email) = g.email
+    where g.archived_at is null
     order by g.full_name;
 end;
 $$;
 
 -- Admins: put people on an event's guest list by email. Someone who isn't on the guest list yet is
--- added to it when a name is given. p_guests: [{"email": "…", "full_name": "…", "company": "…"}, …]
--- Returns {"added": n, "created": n, "missing": [emails that need a name]}.
+-- added to it when a name is given. Archived people are left out (restore them first).
+-- p_guests: [{"email": "…", "full_name": "…", "company": "…"}, …]
+-- Returns {"added": n, "created": n, "missing": [emails that need a name], "archived": [archived emails]}.
 create or replace function public.add_event_guests(p_event_id uuid, p_guests jsonb)
 returns jsonb language plpgsql security definer
 set search_path = ''
 as $$
 declare
-  v_item    jsonb;
-  v_email   text;
-  v_name    text;
-  v_guest   uuid;
-  v_added   int := 0;
-  v_created int := 0;
-  v_missing text[] := '{}';
+  v_item     jsonb;
+  v_email    text;
+  v_name     text;
+  v_guest    uuid;
+  v_gone     boolean;
+  v_added    int := 0;
+  v_created  int := 0;
+  v_missing  text[] := '{}';
+  v_archived text[] := '{}';
 begin
   if not public.is_networking_admin() then raise exception 'NOT_AUTHORIZED'; end if;
   if not exists (select 1 from public.events e where e.id = p_event_id) then raise exception 'EVENT_NOT_FOUND'; end if;
@@ -297,7 +305,11 @@ begin
     v_name  := nullif(trim(v_item ->> 'full_name'), '');
     continue when v_email is null or v_email !~ '^[^@\s]+@[^@\s]+$';
 
-    select g.id into v_guest from public.guests g where g.email = v_email;
+    select g.id, g.archived_at is not null into v_guest, v_gone from public.guests g where g.email = v_email;
+    if v_gone then
+      v_archived := array_append(v_archived, v_email);
+      continue;
+    end if;
     if v_guest is null then
       if v_name is null then
         v_missing := array_append(v_missing, v_email);
@@ -314,7 +326,8 @@ begin
     if found then v_added := v_added + 1; end if;
   end loop;
 
-  return jsonb_build_object('added', v_added, 'created', v_created, 'missing', to_jsonb(v_missing));
+  return jsonb_build_object('added', v_added, 'created', v_created, 'missing', to_jsonb(v_missing),
+                            'archived', to_jsonb(v_archived));
 end;
 $$;
 

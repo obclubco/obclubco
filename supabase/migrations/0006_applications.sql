@@ -3,8 +3,9 @@
 --
 -- Anyone with the link can apply, without a login. Applications land in the `applications` table and admins
 -- review them on the site's Admin page: Accept puts the person on the guest list (and on the event's list),
--- Delete removes the application. To take applications for an event, turn on `applications_open` on its row
--- in `events`: the page then shows its title, date and description (never its location or who's coming).
+-- Archive moves the ones you won't accept to Archives (0009_archive.sql), where they can be restored or deleted
+-- for good. To take applications for an event, turn on `applications_open` on its row in `events`: the page then
+-- shows its title, date and description (never its location or who's coming).
 
 -- ─────────────────────────────────────────────────────────────
 -- 1. Which events take applications
@@ -30,16 +31,19 @@ create table if not exists public.applications (
   city        text check (char_length(city) <= 80),
   note        text check (char_length(note) <= 1000),                      -- why they'd like to come (required)
   referred_by text check (char_length(referred_by) <= 120),                 -- who told them about OB Club
-  status      text not null default 'new' check (status in ('new', 'accepted')),
+  status      text not null default 'new' check (status in ('new', 'accepted', 'archived')),
   guest_id    uuid references public.guests (id) on delete set null,       -- their guest row, once accepted
   created_at  timestamptz not null default now(),
-  reviewed_at timestamptz
+  reviewed_at timestamptz,
+  archived_at timestamptz                                                   -- when it was moved to Archives
 );
+alter table public.applications add column if not exists archived_at timestamptz;
 create index if not exists applications_created_at_idx on public.applications (created_at desc);
 -- The first version of the page required links; they're no longer asked.
 alter table public.applications alter column links drop not null;
 
--- Only admins read and delete applications. New ones come in through submit_application() below.
+-- Only admins read applications, and delete archived ones for good. New ones come in through
+-- submit_application() below.
 alter table public.applications enable row level security;
 
 drop policy if exists "admins read applications" on public.applications;
@@ -48,9 +52,10 @@ create policy "admins read applications" on public.applications
   using ((select public.is_networking_admin()));
 
 drop policy if exists "admins delete applications" on public.applications;
-create policy "admins delete applications" on public.applications
+drop policy if exists "admins delete archived applications" on public.applications;
+create policy "admins delete archived applications" on public.applications
   for delete to authenticated
-  using ((select public.is_networking_admin()));
+  using ((select public.is_networking_admin()) and status = 'archived');
 
 revoke all on public.applications from anon, authenticated;
 grant select, delete on public.applications to authenticated;
@@ -138,8 +143,8 @@ $$;
 -- 4. Admins: accept an application
 -- ─────────────────────────────────────────────────────────────
 -- Puts the person on the guest list (unless they're on it already) with what they told us, and on the event's
--- guest list. Links from older applications become their LinkedIn, Instagram and website. Returns their guest id.
--- They still need a login: Table Editor → guests → set_password.
+-- guest list. Links from older applications become their LinkedIn, Instagram and website. Someone whose profile
+-- was archived is brought back. Returns their guest id. They still need a login: Table Editor → guests → set_password.
 create or replace function public.accept_application(p_id uuid)
 returns uuid language plpgsql security definer
 set search_path = ''
@@ -156,6 +161,7 @@ begin
   if not public.is_networking_admin() then raise exception 'NOT_AUTHORIZED'; end if;
   select * into a from public.applications x where x.id = p_id for update;
   if not found then raise exception 'APPLICATION_NOT_FOUND'; end if;
+  if a.status = 'archived' then raise exception 'APPLICATION_ARCHIVED'; end if;  -- restore it first
 
   for v_token in
     select regexp_replace(t, '^[(<"''\[]+|[.,;:!?)>"''\]]+$', '', 'g') from regexp_split_to_table(a.links, '\s+') t
@@ -176,6 +182,8 @@ begin
     insert into public.guests (email, full_name, company, role, city, phone, linkedin, instagram, website)
     values (a.email, a.full_name, a.company, a.role, a.city, a.phone, v_linkedin, v_instagram, v_website)
     returning id into v_guest;
+  else
+    update public.guests g set archived_at = null where g.id = v_guest and g.archived_at is not null;
   end if;
   if a.event_id is not null then
     insert into public.event_guests (event_id, guest_id) values (a.event_id, v_guest) on conflict do nothing;

@@ -272,11 +272,12 @@ export function ApplyForm({ choices }: { choices: OpenEvent[] }) {
                 className="mt-0.5 size-5 shrink-0 cursor-pointer accent-bone"
               />
               <span className="text-sm leading-6 text-bone/80">
-                I agree that OB Club uses these details only to review my application, as described{" "}
+                I agree that OB Club uses these details only to review my application and think of me for its events, as
+                described{" "}
                 <a href="#privacy" className="underline decoration-bone/30 underline-offset-4 hover:decoration-bone">
                   at the bottom of this page
                 </a>
-                , and deletes them if I&apos;m not invited.
+                .
               </span>
             </label>
             {errors.consent && (

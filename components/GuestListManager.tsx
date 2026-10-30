@@ -32,10 +32,15 @@ export function GuestListManager({ event, guests, onChange }: { event: NetEvent;
         lines.push(
           `${plural(result.missing.length, "email")} ${result.missing.length === 1 ? "isn't" : "aren't"} on the guest list yet. Add a name to ${result.missing.length === 1 ? "it" : "each"} (e.g. "Jane Doe, jane@company.com") and add again.`,
         );
+      const archived = result.archived ?? [];
+      if (archived.length)
+        lines.push(
+          `Not added, because ${archived.length === 1 ? "their profile is" : "their profiles are"} archived: ${archived.join(", ")}. Restore ${archived.length === 1 ? "it" : "them"} from Archives on the Admin page first.`,
+        );
       if (skipped) lines.push(`Skipped ${plural(skipped, "line")} without an email address.`);
-      setMessage({ ok: !result.missing.length, lines });
-      // Keep only the people that still need a name, so they can be fixed and added again.
-      setText(rows.filter((r) => result.missing.includes(r.email)).map((r) => r.email).join("\n"));
+      setMessage({ ok: !result.missing.length && !archived.length, lines });
+      // Keep only the people that still need a name or a restore, so they can be added again.
+      setText(rows.filter((r) => result.missing.includes(r.email) || archived.includes(r.email)).map((r) => r.email).join("\n"));
       onChange();
     } catch (err) {
       setMessage({ ok: false, lines: [`Couldn't add guests: ${errorMessage(err)}`] });

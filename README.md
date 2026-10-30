@@ -30,7 +30,8 @@ project, but then each email has a single login for both sites.)
    from the Table Editor) and [`supabase/migrations/0006_applications.sql`](supabase/migrations/0006_applications.sql)
    (the application page). Optional: [`supabase/migrations/0007_telegram.sql`](supabase/migrations/0007_telegram.sql)
    posts applications to a Telegram group (see *Applications in Telegram* below), and
-   [`supabase/migrations/0008_leads.sql`](supabase/migrations/0008_leads.sql) adds call notes (see *Leads* below).
+   [`supabase/migrations/0008_leads.sql`](supabase/migrations/0008_leads.sql) adds call notes (see *Leads* below), and
+   [`supabase/migrations/0009_archive.sql`](supabase/migrations/0009_archive.sql) adds Archives (see *Archives* below).
    Those are the only files the networking site needs (`0001` to `0003` belong to the partner site, on the `partner`
    branch). Running them again is safe: nothing that exists is removed or changed.
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
@@ -109,7 +110,7 @@ domain, save, and add it again.
 | **Edit someone's profile** | Table Editor → `guests`. (Guests edit their own on the Profile page.) |
 | **Change a password** | Type the new one in their `set_password` cell and save. |
 | **Change someone's email** | Edit `email` in their `guests` row; their login moves to the new email and keeps its password. |
-| **Remove someone** | Delete their `guests` row: they lose access, disappear from every guest list, and their login is deleted. |
+| **Remove someone** | Admin page → **Guests** → **Archive** on their row. They disappear from every guest list and can't log in, but nothing is deleted: **Restore** in *Archives* brings them back (see *Archives* below). |
 
 Logins made under Authentication → Users instead also work, but only for emails already in `guests`; otherwise
 Supabase refuses with "Database error creating new user". (If the sites share one project, emails on the partner site's
@@ -130,7 +131,7 @@ page leads there.
 | **The general link** | `networking.obclub.co/apply/` (**Copy application link** on the Admin page). With one event open it shows that event; with several, people pick one; with none, they apply for future events in general. The log in page links to it too. |
 | **Review applications** | Admin page → **Applications**: each one with their contact details (the phone number opens WhatsApp, a call or Telegram, as they asked) and answers. **Accept** puts them on the guest list (with their details in their profile) and on the event's guest list. |
 | **Give an accepted guest a login** | As for anyone: Table Editor → `guests` → type a password in their `set_password` cell, then send it to them. |
-| **Decline** | **Delete** the application. The page promises to delete the details of people who aren't invited, so delete applications once you've decided. |
+| **Decline** | **Archive** the lead. It moves to *Archives* with its call notes (there's **Undo** right after). The page tells applicants their application is kept for later events and deleted if they ask: **Delete for good** in *Archives* does that. |
 
 Applications are also in Supabase → Table Editor → `applications`. Only admins can read them; the page can only add
 new ones. Applying again for the same event replaces the earlier application while it's waiting, a hidden field
@@ -140,7 +141,8 @@ catches bots, and more than 60 applications in 10 minutes are asked to try again
 
 Every new application can also be posted to a Telegram group: who it is, what they do, why they'd like to come, how
 to reach them (the phone links to WhatsApp or Telegram, as they asked) and a link to the Admin page. **Accept** on the
-Admin page marks the message ✅ Accepted; **Delete** takes the person's details out of it. Setting it up, once:
+Admin page marks the message ✅ Accepted and **Archive** marks it 🗄 Archived; **Delete for good** (in *Archives*) takes
+the person's details out of it. Setting it up, once:
 
 1. Supabase → **SQL Editor** → run [`supabase/migrations/0007_telegram.sql`](supabase/migrations/0007_telegram.sql).
 2. Telegram → search **@BotFather** → **/newbot** → give it a name (e.g. *OBC Applications*) and a username ending in
@@ -165,7 +167,7 @@ Every application on the Admin page is a lead with its own call notes (run
 - After a call, **Add call notes** → what you talked about → how it went: **Closed** or **Follow-up needed** (with a
   date if you like) → **Save**. Each note is signed with your name.
 - **Edit** on a note changes it in place (the words, how it went, the date) instead of adding a new one; it then
-  says *edited*. **Delete** removes it. Deleting an application deletes its notes too.
+  says *edited*. **Delete** removes it. Archived leads keep their notes; deleting a lead for good deletes them too.
 - The badge on each application shows where it stands after the latest call: *To call*, *Closed* or
   *Follow-up · date* (red once the date has passed). The buttons above the list show just one kind, with counts;
   *Follow-up* lists the soonest date first.
@@ -174,6 +176,22 @@ Every application on the Admin page is a lead with its own call notes (run
 
 Call notes stay on the site: they aren't posted to Telegram (only new applications are). Only admins can read or
 write them; they're also in Supabase → Table Editor → `application_notes`.
+
+### Archives
+
+Nothing is deleted from the Admin page by accident any more: leads you don't accept and people you remove go to
+**Archives**, at the bottom of the Admin page (run
+[`supabase/migrations/0009_archive.sql`](supabase/migrations/0009_archive.sql) once to switch it on).
+
+- **Leads**: **Archive** on a waiting lead (where *Delete* used to be). Its details and call notes are kept, and its
+  Telegram message is marked *Archived*. Accepted leads stay under *Accepted*.
+- **Profiles**: **Archive** on someone's row in the **Guests** table (you can't archive yourself). They disappear from
+  every guest list and their login stops working, but their profile, events and login are kept. Pasting their email
+  into a guest list skips them and says why. Accepting a new application from them brings them back.
+- In **Archives**: **Restore** puts a lead back with the others, or a person back on their guest lists with their
+  login working again. **Delete for good** is the only way to delete from the site: a lead with its call notes, or a
+  person with their place on guest lists and their login. It asks first. (Profile photos stay in Supabase → Storage →
+  `guest-photos`, in a folder named after the person's id; delete it there if needed.)
 
 ## What guests can see
 
@@ -269,16 +287,18 @@ app/
   (network)/events/, event/?id=…    your events; one event with its guest list (plus admin tools)
   (network)/guests/, guest/?id=…    everyone you've met; one guest's profile and your events in common
   (network)/profile/                edit your profile and photo, privacy, change password
-  (network)/manage/                 admin: applications, all guests and events, who has a login
+  (network)/manage/                 admin: applications, all guests and events, who has a login, Archives
   apply/                            public application page (?event=… for one event)
 components/                         UI: GuestGate (login check), ProfileEditor, GuestListManager, cards…
 lib/network.ts                      reading and saving guests, events and guest lists
 lib/applications.ts                 applications: the public page and the admin side
+lib/archive.ts                      Archives: archive, restore and delete for good
 supabase/migrations/0004_networking.sql   database: tables, security rules, functions
 supabase/migrations/0005_logins.sql       logins and passwords from the guests table
 supabase/migrations/0006_applications.sql applications from the public page
 supabase/migrations/0007_telegram.sql     applications posted to a Telegram group (optional)
 supabase/migrations/0008_leads.sql        call notes on applications (admins only)
+supabase/migrations/0009_archive.sql      Archives: leads and profiles kept instead of deleted
 supabase/seed-networking.sql        example content
 scripts/security-headers.mjs        after each build: Content-Security-Policy in every page, out/_headers
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co

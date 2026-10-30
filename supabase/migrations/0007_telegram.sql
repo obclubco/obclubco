@@ -7,8 +7,8 @@
 --   3. Here in the SQL Editor:   select public.telegram_connect('PASTE-THE-TOKEN-HERE');
 --      It finds the group, saves the settings and sends a test message there.
 -- Every new application is then posted to the group. Accepting it on the Admin page marks the message
--- "Accepted"; deleting it takes the person's details out of the message. To stop: Table Editor →
--- telegram_settings → delete the row.
+-- "Accepted", archiving it marks it "Archived", and deleting it for good takes the person's details out of the
+-- message. To stop: Table Editor → telegram_settings → delete the row.
 
 create extension if not exists http with schema extensions;
 
@@ -139,7 +139,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────
 -- 3. The messages
 -- ─────────────────────────────────────────────────────────────
--- p_status: 'new', 'accepted' or 'removed' (deleted on the Admin page, or replaced by a newer application).
+-- p_status: 'new', 'accepted', 'archived' or 'removed' (deleted for good, or replaced by a newer application).
 create or replace function public.telegram_application_text(a public.applications, p_status text)
 returns text language plpgsql stable security definer
 set search_path = ''
@@ -157,13 +157,16 @@ begin
   -- Removed: nothing about the person stays in the group.
   if p_status = 'removed' then
     return '🗑 Application removed · ' || v_event || E'\n'
-      || 'Deleted on the Admin page, or replaced by a newer one. Their details have been taken out of this message.';
+      || 'Deleted for good on the Admin page, or replaced by a newer one. Their details have been taken out of this message.';
   end if;
 
   select s.site_url into v_site from public.telegram_settings s limit 1;
   return array_to_string(array[
-    case when p_status = 'accepted' then '✅ <b>Accepted</b>, on the guest list · ' else '🆕 <b>New application</b> · ' end
-      || v_event,
+    case p_status
+      when 'accepted' then '✅ <b>Accepted</b>, on the guest list · '
+      when 'archived' then '🗄 <b>Archived</b>, not accepted · '
+      else '🆕 <b>New application</b> · '
+    end || v_event,
     '',
     '<b>' || public.telegram_html(a.full_name) || '</b>' || coalesce(' · ' || public.telegram_html(a.role), ''),
     '💬 ' || public.telegram_html(a.note),
@@ -183,7 +186,7 @@ begin
 end;
 $$;
 
--- New application → post it. Accepted → mark it. Deleted (or replaced) → take the details out.
+-- New application → post it. Accepted or archived (or restored) → mark it. Deleted (or replaced) → take the details out.
 -- Never stops the application itself from being saved, accepted or deleted.
 create or replace function public.applications_to_telegram()
 returns trigger language plpgsql security definer
