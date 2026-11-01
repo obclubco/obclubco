@@ -46,6 +46,8 @@ const policy = [
   "style-src 'self' 'unsafe-inline'",
   // Profile photos and event covers: Supabase Storage, or a link to an image anywhere on https.
   `img-src 'self' data: https: ${supabase}`.trim(),
+  // Event videos from Supabase Storage; blob: is a video being added, read in the browser for its preview.
+  `media-src 'self' blob: ${supabase}`.trim(),
   "font-src 'self'",
   // The site only talks to itself and its Supabase project.
   `connect-src 'self' ${supabase}`.trim(),

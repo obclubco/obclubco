@@ -61,3 +61,15 @@ export const Check = ({ className = "size-4" }: P) => (
 export const Plus = ({ className = "size-4" }: P) => (
   <svg viewBox="0 0 24 24" className={className} {...base}><path d="M12 5v14M5 12h14" /></svg>
 );
+export const Play = ({ className = "size-4" }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...base} fill="currentColor"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+);
+export const Download = ({ className = "size-4" }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...base}><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></svg>
+);
+export const ChevronLeft = ({ className = "size-5" }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...base}><path d="m14.5 6-6 6 6 6" /></svg>
+);
+export const ChevronRight = ({ className = "size-5" }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...base}><path d="m9.5 6 6 6-6 6" /></svg>
+);

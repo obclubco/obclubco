@@ -158,7 +158,7 @@ export default function ManagePage() {
             {eventsNote}
           </p>
         )}
-        <div data-reveal className="card overflow-x-auto">
+        <div data-reveal className="card relative overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-line text-[11px] uppercase tracking-widest text-mute">
               <tr>
@@ -247,7 +247,7 @@ export default function ManagePage() {
             {guestsNote.text}
           </p>
         )}
-        <div data-reveal className="card overflow-x-auto">
+        <div data-reveal className="card relative overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="border-b border-line text-[11px] uppercase tracking-widest text-mute">
               <tr>

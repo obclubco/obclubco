@@ -167,7 +167,7 @@ export function ArchivesAdmin({
                 No archived profiles. Archive someone in the Guests table above and they move here.
               </p>
             ) : (
-              <div className="card mt-3 overflow-x-auto">
+              <div className="card relative mt-3 overflow-x-auto">
                 <table className="w-full min-w-[760px] text-left text-sm">
                   <thead className="border-b border-line text-[11px] uppercase tracking-widest text-mute">
                     <tr>

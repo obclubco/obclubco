@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { StatusPill } from "@/components/EventCard";
+import { EventMedia } from "@/components/EventMedia";
 import { GuestCard } from "@/components/GuestCard";
 import { useMe } from "@/components/GuestGate";
 import { GuestListManager } from "@/components/GuestListManager";
@@ -111,6 +112,8 @@ function EventDetail() {
           ))}
         </dl>
       </div>
+
+      <EventMedia key={event.id} event={event} isAdmin={me.is_admin} />
 
       {listPrivate ? (
         <section className="mt-16">

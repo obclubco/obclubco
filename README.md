@@ -31,7 +31,9 @@ project, but then each email has a single login for both sites.)
    (the application page). Optional: [`supabase/migrations/0007_telegram.sql`](supabase/migrations/0007_telegram.sql)
    posts applications to a Telegram group (see *Applications in Telegram* below), and
    [`supabase/migrations/0008_leads.sql`](supabase/migrations/0008_leads.sql) adds call notes (see *Leads* below), and
-   [`supabase/migrations/0009_archive.sql`](supabase/migrations/0009_archive.sql) adds Archives (see *Archives* below).
+   [`supabase/migrations/0009_archive.sql`](supabase/migrations/0009_archive.sql) adds Archives (see *Archives* below), and
+   [`supabase/migrations/0010_event_media.sql`](supabase/migrations/0010_event_media.sql) adds photos and videos to
+   events (see *Photos and videos of events* below).
    Those are the only files the networking site needs (`0001` to `0003` belong to the partner site, on the `partner`
    branch). Running them again is safe: nothing that exists is removed or changed.
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
@@ -104,6 +106,7 @@ domain, save, and add it again.
 | --- | --- |
 | **Add an event** | Supabase → **Table Editor → `events`** → Insert row: `title`, `starts_at` (date and time), optional `ends_at`, `location`, `description`, `cover_image_url` (an image link). Turn `is_published` off to prepare an event without guests seeing it. |
 | **Put people on a guest list** | On the site, as an admin: **Events** → the event → **Manage the guest list** → paste email addresses, one per line (a column copied from a spreadsheet works). Someone new also needs a name: `Jane Doe, jane@company.com, Company`. They're added to the site and to the event in one go. **Remove** takes someone off the list: after an event, remove the no-shows so the list shows who was really there. |
+| **Add photos and videos of an event** | On the site, as an admin: **Events** → the event → **Add photos and videos** (pick as many as you like at once). See *Photos and videos of events* below. |
 | **Give someone a login** | Table Editor → `guests` → type a password (8+ characters) in their `set_password` cell and save. That creates their login; `password_set_at` shows it worked. Send them the email and password; they log in at networking.obclub.co and can change the password on their Profile page. The password isn't kept: the cell empties itself, so note it down before saving. The site's **Admin** page shows who has no login yet (**Copy … without a login**). |
 | **Add many people with logins** | Table Editor → `guests` → **Insert → Import data from CSV** with the columns `email`, `full_name` and `set_password` (plus any profile columns). Everyone gets a login in one go. |
 | **Make someone an admin** | Table Editor → `guests` → set `is_admin` to true. Admins see every event and guest (hidden ones too), draft events, and the Admin page. |
@@ -193,6 +196,25 @@ Nothing is deleted from the Admin page by accident any more: leads you don't acc
   person with their place on guest lists and their login. It asks first. (Profile photos stay in Supabase → Storage →
   `guest-photos`, in a folder named after the person's id; delete it there if needed.)
 
+## Photos and videos of events
+
+Admins add photos and videos on each event's page (run
+[`supabase/migrations/0010_event_media.sql`](supabase/migrations/0010_event_media.sql) once to switch it on).
+
+- **Adding**: the event's page → **Add photos and videos** → pick them (several at once is fine, from a phone or a
+  computer). Photos are resized to 2048 px for the web, with a small preview for the grid. Videos go up as they are,
+  **up to 50 MB each**: trim or export longer ones smaller. MP4 plays in every browser; on an iPhone, Settings →
+  Camera → Formats → **Most Compatible** films in a format that does. Files that can't be added are listed with why.
+- **Who sees them**: everyone on that event's guest list, and admins, on the event's page: a grid that opens full screen
+  (arrows or swipe, **Download**). Nobody else can open them: the files are in a private Storage bucket,
+  `event-media`, and the site opens them through links that expire after a few hours.
+- **Deleting**: open the photo or video → **Delete** (admins only). It's removed for everyone, files and all.
+- **Space**: the Supabase free plan has 1 GB of storage in total. A photo takes about half a megabyte, a video up to
+  50 MB; see how much is used under Supabase → Storage. On the Pro plan you can allow bigger videos: raise the limit
+  under Storage → Settings and on the `event-media` bucket.
+- Deleting an event in the Table Editor takes its photos and videos off the site, but the files stay in Storage →
+  `event-media`, in a folder named after the event's id: delete that folder too.
+
 ## What guests can see
 
 - Only the events they're on the list for, and only the other guests of those events.
@@ -202,6 +224,7 @@ Nothing is deleted from the Admin page by accident any more: leads you don't acc
   **Email and phone only when that guest turns on "Share my email and phone".**
 - A guest who turns off **"Show my profile to other guests"** is left out of every guest list (they still see others).
 - Draft events (`is_published` off) and their guest lists are only visible to admins.
+- Photos and videos of the events they're on the list for (once the event is published).
 
 The database enforces all of this (row-level security). Other guests' profiles are served by `get_network()`, which
 leaves out private fields; guests can only change their own profile fields, never their email or admin flag.
@@ -214,7 +237,7 @@ Every build ([`scripts/security-headers.mjs`](scripts/security-headers.mjs), run
 - **A Content-Security-Policy.** Scripts only from the site itself, with no `'unsafe-inline'` or `'unsafe-eval'`.
   The few small scripts Next.js puts inside each page are allowed by their SHA-256 hashes, worked out after each
   build. Connections go only to the site and its Supabase project, images to the site and `https:` (photo and cover
-  links), and no plugins, `<base>` tricks or forms posting elsewhere.
+  links), videos to the site and its Supabase project, and no plugins, `<base>` tricks or forms posting elsewhere.
 - **A referrer policy** (`strict-origin-when-cross-origin`) and **a frame guard**: inside another site's frame, the
   page hides itself (clickjacking).
 - **`out/_headers`** with the headers: `Content-Security-Policy` (plus `frame-ancestors 'none'`),
@@ -293,12 +316,14 @@ components/                         UI: GuestGate (login check), ProfileEditor, 
 lib/network.ts                      reading and saving guests, events and guest lists
 lib/applications.ts                 applications: the public page and the admin side
 lib/archive.ts                      Archives: archive, restore and delete for good
+lib/media.ts                        event photos and videos: resizing, uploads, private links
 supabase/migrations/0004_networking.sql   database: tables, security rules, functions
 supabase/migrations/0005_logins.sql       logins and passwords from the guests table
 supabase/migrations/0006_applications.sql applications from the public page
 supabase/migrations/0007_telegram.sql     applications posted to a Telegram group (optional)
 supabase/migrations/0008_leads.sql        call notes on applications (admins only)
 supabase/migrations/0009_archive.sql      Archives: leads and profiles kept instead of deleted
+supabase/migrations/0010_event_media.sql  photos and videos of events (private Storage bucket)
 supabase/seed-networking.sql        example content
 scripts/security-headers.mjs        after each build: Content-Security-Policy in every page, out/_headers
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co
