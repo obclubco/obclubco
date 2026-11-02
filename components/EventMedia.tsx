@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Close, Download, Play, Plus } from "@/components/Icons";
+import { ChevronDown, ChevronLeft, ChevronRight, Close, Download, Play, Plus } from "@/components/Icons";
 import { errorMessage } from "@/lib/hooks";
 import {
   addEventMedia,
@@ -15,6 +15,8 @@ import {
 import type { NetEvent } from "@/lib/network";
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+/** How many show before More: one row. */
+const PREVIEW = 3;
 const label = (m: Media, i: number, total: number) => `${m.kind === "video" ? "Video" : "Photo"} ${i + 1} of ${total}`;
 
 /** An event's photos and videos: a grid that opens full screen. Admins add and delete them. */
@@ -26,6 +28,8 @@ export function EventMedia({ event, isAdmin }: { event: NetEvent; isAdmin: boole
   const [open, setOpen] = useState<number | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [report, setReport] = useState<{ photos: number; videos: number; problems: string[] } | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const section = useRef<HTMLElement>(null);
 
   const addLinks = useCallback(async (list: Media[]) => {
     const map = await mediaLinks(list.flatMap((m) => [m.path, ...(m.thumb_path ? [m.thumb_path] : [])]));
@@ -56,6 +60,8 @@ export function EventMedia({ event, isAdmin }: { event: NetEvent; isAdmin: boole
         const m = await addEventMedia(event.id, file);
         result[m.kind === "video" ? "videos" : "photos"]++;
         setItems((prev) => [...(prev ?? []), m]);
+        // Show everything, so each one appears as it's added.
+        setExpanded(true);
         await addLinks([m]);
       } catch (e) {
         const message = errorMessage(e);
@@ -64,6 +70,15 @@ export function EventMedia({ event, isAdmin }: { event: NetEvent; isAdmin: boole
     }
     setProgress(null);
     setReport(result);
+  }
+
+  function toggle() {
+    if (!expanded) return setExpanded(true);
+    setExpanded(false);
+    // Back up to the photos if the page is now scrolled past them.
+    requestAnimationFrame(() => {
+      if ((section.current?.getBoundingClientRect().top ?? 0) < 0) section.current?.scrollIntoView({ behavior: "smooth" });
+    });
   }
 
   function deleted(m: Media) {
@@ -78,7 +93,7 @@ export function EventMedia({ event, isAdmin }: { event: NetEvent; isAdmin: boole
   if (items === undefined || (!isAdmin && !items?.length)) return null;
 
   return (
-    <section className="mt-16" aria-labelledby="media-title">
+    <section ref={section} className="mt-16 scroll-mt-28" aria-labelledby="media-title">
       <div data-reveal className="flex flex-col gap-5 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between">
         <h2 id="media-title" className="display text-4xl">
           Photos &amp; Videos {!!items?.length && <span className="text-mute">{items.length}</span>}
@@ -140,11 +155,16 @@ export function EventMedia({ event, isAdmin }: { event: NetEvent; isAdmin: boole
       )}
 
       {!!items?.length && (
-        <ul className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
-          {items.map((m, i) => {
+        <ul className="mt-6 grid grid-cols-3 gap-1.5 sm:gap-3">
+          {(expanded ? items : items.slice(0, PREVIEW)).map((m, i) => {
             const preview = links.get(m.thumb_path ?? (m.kind === "photo" ? m.path : ""));
             return (
-              <li key={m.id}>
+              <li
+                key={m.id}
+                // The ones More shows fade in, one after another.
+                className={i >= PREVIEW ? "enter" : undefined}
+                style={i >= PREVIEW ? ({ "--d": `${Math.min(i - PREVIEW, 11) * 40}ms` } as React.CSSProperties) : undefined}
+              >
                 <button
                   type="button"
                   onClick={() => setOpen(i)}
@@ -165,7 +185,7 @@ export function EventMedia({ event, isAdmin }: { event: NetEvent; isAdmin: boole
                     </span>
                   )}
                   {m.kind === "video" && (
-                    <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-ink/75 px-2.5 py-1 text-[11px] text-bone backdrop-blur">
+                    <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-ink/75 px-2 py-0.5 text-[11px] text-bone backdrop-blur sm:bottom-2 sm:left-2 sm:px-2.5 sm:py-1">
                       <Play className="size-3" /> {duration(m.seconds) ?? "Video"}
                     </span>
                   )}
@@ -174,6 +194,21 @@ export function EventMedia({ event, isAdmin }: { event: NetEvent; isAdmin: boole
             );
           })}
         </ul>
+      )}
+
+      {!!items && items.length > PREVIEW && (
+        <div className="mt-5 flex justify-center">
+          <button type="button" onClick={toggle} aria-expanded={expanded} className="btn-ghost gap-2 px-6 py-2.5 text-xs">
+            {expanded ? (
+              "Less"
+            ) : (
+              <>
+                More <span className="text-mute">+{items.length - PREVIEW}</span>
+              </>
+            )}
+            <ChevronDown className={`size-3.5 transition duration-300 ${expanded ? "rotate-180" : ""}`} />
+          </button>
+        </div>
       )}
 
       {open !== null && items?.[open] && (

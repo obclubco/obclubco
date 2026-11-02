@@ -205,9 +205,10 @@ Admins add photos and videos on each event's page (run
   computer). Photos are resized to 2048 px for the web, with a small preview for the grid. Videos go up as they are,
   **up to 50 MB each**: trim or export longer ones smaller. MP4 plays in every browser; on an iPhone, Settings →
   Camera → Formats → **Most Compatible** films in a format that does. Files that can't be added are listed with why.
-- **Who sees them**: everyone on that event's guest list, and admins, on the event's page: a grid that opens full screen
-  (arrows or swipe, **Download**). Nobody else can open them: the files are in a private Storage bucket,
-  `event-media`, and the site opens them through links that expire after a few hours.
+- **Who sees them**: everyone on that event's guest list, and admins, on the event's page. The first 3 show in a row;
+  **More** shows the rest and **Less** folds them away again. Each one opens full screen (arrows or swipe go through
+  all of them, **Download**). Nobody else can open them: the files are in a private Storage bucket, `event-media`,
+  and the site opens them through links that expire after a few hours.
 - **Deleting**: open the photo or video → **Delete** (admins only). It's removed for everyone, files and all.
 - **Space**: the Supabase free plan has 1 GB of storage in total. A photo takes about half a megabyte, a video up to
   50 MB; see how much is used under Supabase → Storage. On the Pro plan you can allow bigger videos: raise the limit
