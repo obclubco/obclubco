@@ -119,6 +119,9 @@ A lesson with no questions is complete once the partner marks the video as watch
   - `portfolio`: links as JSON, e.g. `[{"label": "LinkedIn", "url": "https://…"}, {"label": "Case study", "url": "https://…"}]`
   - `sort_order` for the order, `is_published` to hide someone without deleting them
 
+  Coach photos can live in the site itself: put a square image in `public/coaches/` (e.g. `ruslans.webp`) and
+  set `photo_url` to `/coaches/ruslans.webp`. It goes live with the next deploy.
+
   There's a ready-to-edit example at the bottom of `0002_public_pages.sql`.
 
 ## Social posting (Admin → Social)
