@@ -7,6 +7,7 @@ import { Camera } from "@/components/Icons";
 import { instagramUrl, linkedinUrl, websiteUrl } from "@/lib/format";
 import { errorMessage } from "@/lib/hooks";
 import { deletePhoto, updateProfile, uploadPhoto, type Me, type ProfileFields, type PublicProfile } from "@/lib/network";
+import { photoError, shrinkPhoto } from "@/lib/photos";
 
 type TextKey =
   | "full_name"
@@ -364,38 +365,6 @@ function Switch({
 
 // ── Photo ──
 
-const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-/** Scales a photo down to at most 800px (as a JPEG) so it uploads fast and loads fast. */
-async function shrink(file: File, max = 800): Promise<Blob> {
-  if (!file.type.startsWith("image/")) throw new Error("NOT_AN_IMAGE");
-  let bitmap: ImageBitmap;
-  try {
-    bitmap = await createImageBitmap(file);
-  } catch {
-    // Formats the browser can't draw (e.g. HEIC outside Safari): upload as is when allowed.
-    if (PHOTO_TYPES.includes(file.type) && file.size <= 5 * 1024 * 1024) return file;
-    throw new Error("UNREADABLE");
-  }
-  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("UNREADABLE"))), "image/jpeg", 0.85),
-  );
-}
-
-function photoError(e: unknown) {
-  const message = errorMessage(e);
-  if (message === "NOT_AN_IMAGE") return "Choose a photo (JPG or PNG).";
-  if (message === "UNREADABLE" || /mime|type/i.test(message)) return "That photo couldn't be read. Try a JPG or PNG.";
-  if (/size|large/i.test(message)) return "That photo is too big. Try a smaller one.";
-  return "Couldn't upload the photo. Please try again.";
-}
-
 /** Uploading or removing a photo saves straight away. */
 function PhotoField({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }) {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -406,7 +375,7 @@ function PhotoField({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }) {
     setBusy("upload");
     setError(null);
     try {
-      const url = await uploadPhoto(me.id, await shrink(file));
+      const url = await uploadPhoto(me.id, await shrinkPhoto(file));
       const updated = await updateProfile(me.id, { photo_url: url });
       onSaved(updated);
       await deletePhoto(me.id, me.photo_url).catch(() => {});

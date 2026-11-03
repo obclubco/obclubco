@@ -140,6 +140,29 @@ export async function deletePhoto(guestId: string, url: string | null) {
   if (path?.startsWith(`${guestId}/`)) await supabase().storage.from(PHOTO_BUCKET).remove([path]);
 }
 
+/**
+ * Admins: puts a new photo on a guest's profile, or none (null), and deletes the one it replaced. Returns the new
+ * photo's link. Needs 0011_admin_photos.sql.
+ */
+export async function setGuestPhoto(guestId: string, photo: Blob | null): Promise<string | null> {
+  const url = photo ? await uploadPhoto(guestId, photo) : null;
+  const { data: replaced, error } = await supabase().rpc("admin_set_guest_photo", { p_guest_id: guestId, p_photo_url: url });
+  if (error) {
+    if (url) await deletePhoto(guestId, url).catch(() => {});
+    throw error;
+  }
+  clearCache();
+  await deletePhoto(guestId, replaced as string | null).catch(() => {});
+  return url;
+}
+
+/** Admins: every guest's photo, by guest id. */
+export async function getGuestPhotos(): Promise<Map<string, string | null>> {
+  const { data, error } = await supabase().from("guests").select("id, photo_url");
+  if (error) throw error;
+  return new Map((data ?? []).map((g: { id: string; photo_url: string | null }) => [g.id, g.photo_url]));
+}
+
 // ── Admins ──
 
 export async function getAdminOverview(): Promise<AdminGuest[]> {

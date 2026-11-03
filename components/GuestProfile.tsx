@@ -22,11 +22,14 @@ export function GuestProfile({
   profile,
   badge,
   as: Heading = "h1",
+  actions,
 }: {
   profile: PublicProfile;
   badge?: string;
   /** Heading level for the name (h2 when the profile is shown inside another page, as a preview). */
   as?: "h1" | "h2";
+  /** Shown under the name, e.g. the photo buttons admins get. */
+  actions?: React.ReactNode;
 }) {
   const line = roleLine(profile);
   const links = contactLinks(profile);
@@ -52,6 +55,7 @@ export function GuestProfile({
               <MapPin /> {profile.city}
             </p>
           )}
+          {actions}
         </div>
       </header>
 

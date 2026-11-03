@@ -33,7 +33,9 @@ project, but then each email has a single login for both sites.)
    [`supabase/migrations/0008_leads.sql`](supabase/migrations/0008_leads.sql) adds call notes (see *Leads* below), and
    [`supabase/migrations/0009_archive.sql`](supabase/migrations/0009_archive.sql) adds Archives (see *Archives* below), and
    [`supabase/migrations/0010_event_media.sql`](supabase/migrations/0010_event_media.sql) adds photos and videos to
-   events (see *Photos and videos of events* below).
+   events (see *Photos and videos of events* below), and
+   [`supabase/migrations/0011_admin_photos.sql`](supabase/migrations/0011_admin_photos.sql) lets admins change guests'
+   profile photos.
    Those are the only files the networking site needs (`0001` to `0003` belong to the partner site, on the `partner`
    branch). Running them again is safe: nothing that exists is removed or changed.
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
@@ -110,7 +112,8 @@ domain, save, and add it again.
 | **Give someone a login** | Table Editor → `guests` → type a password (8+ characters) in their `set_password` cell and save. That creates their login; `password_set_at` shows it worked. Send them the email and password; they log in at networking.obclub.co and can change the password on their Profile page. The password isn't kept: the cell empties itself, so note it down before saving. The site's **Admin** page shows who has no login yet (**Copy … without a login**). |
 | **Add many people with logins** | Table Editor → `guests` → **Insert → Import data from CSV** with the columns `email`, `full_name` and `set_password` (plus any profile columns). Everyone gets a login in one go. |
 | **Make someone an admin** | Table Editor → `guests` → set `is_admin` to true. Admins see every event and guest (hidden ones too), draft events, and the Admin page. |
-| **Edit someone's profile** | Table Editor → `guests`. (Guests edit their own on the Profile page.) |
+| **Change someone's photo** | On the site, as an admin: **Admin** → **Guests** → tap their photo (or initials) and pick a new one. Or open their profile: **Change photo** / **Remove photo** (admins only). It's shrunk to 800 px, saved straight away, and the old one is deleted. Needs [`0011_admin_photos.sql`](supabase/migrations/0011_admin_photos.sql). They can still change it themselves on their Profile page. |
+| **Edit someone's profile** | Table Editor → `guests`. (Guests edit their own on the Profile page; admins can change anyone's photo, see above.) |
 | **Change a password** | Type the new one in their `set_password` cell and save. |
 | **Change someone's email** | Edit `email` in their `guests` row; their login moves to the new email and keeps its password. |
 | **Remove someone** | Admin page → **Guests** → **Archive** on their row. They disappear from every guest list and can't log in, but nothing is deleted: **Restore** in *Archives* brings them back (see *Archives* below). |
@@ -229,7 +232,9 @@ Admins add photos and videos on each event's page (run
 
 The database enforces all of this (row-level security). Other guests' profiles are served by `get_network()`, which
 leaves out private fields; guests can only change their own profile fields, never their email or admin flag.
-Profile photos go to the `guest-photos` storage bucket as public links, like any profile picture.
+Profile photos go to the `guest-photos` storage bucket as public links, like any profile picture. Each guest can only
+add or delete photos in their own folder there; admins can in anyone's (`0011_admin_photos.sql`), and change only a
+guest's photo, not the rest of their profile.
 
 ## Security headers
 
@@ -318,6 +323,7 @@ lib/network.ts                      reading and saving guests, events and guest 
 lib/applications.ts                 applications: the public page and the admin side
 lib/archive.ts                      Archives: archive, restore and delete for good
 lib/media.ts                        event photos and videos: resizing, uploads, private links
+lib/photos.ts                       profile photos: resizing before upload, what to say when one can't be used
 supabase/migrations/0004_networking.sql   database: tables, security rules, functions
 supabase/migrations/0005_logins.sql       logins and passwords from the guests table
 supabase/migrations/0006_applications.sql applications from the public page
@@ -325,6 +331,7 @@ supabase/migrations/0007_telegram.sql     applications posted to a Telegram grou
 supabase/migrations/0008_leads.sql        call notes on applications (admins only)
 supabase/migrations/0009_archive.sql      Archives: leads and profiles kept instead of deleted
 supabase/migrations/0010_event_media.sql  photos and videos of events (private Storage bucket)
+supabase/migrations/0011_admin_photos.sql admins change guests' profile photos
 supabase/seed-networking.sql        example content
 scripts/security-headers.mjs        after each build: Content-Security-Policy in every page, out/_headers
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co

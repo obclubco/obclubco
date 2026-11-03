@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApplicationsAdmin } from "@/components/ApplicationsAdmin";
+import { GuestPhotoButton } from "@/components/AdminGuestPhoto";
 import { ArchivesAdmin } from "@/components/ArchivesAdmin";
+import { Avatar } from "@/components/Avatar";
 import { useMe } from "@/components/GuestGate";
 import { EyeOff } from "@/components/Icons";
 import { SearchInput } from "@/components/SearchInput";
@@ -14,7 +16,7 @@ import { eventStatus, formatDate } from "@/lib/format";
 import { applyUrl, getApplications, getLeadNotes, getOpenEventIds, setApplicationsOpen } from "@/lib/applications";
 import { archiveError, archiveGuest, getArchivedGuests } from "@/lib/archive";
 import { errorMessage, useLoad, usePageTitle } from "@/lib/hooks";
-import { getAdminOverview, getMyEvents, type AdminGuest, type NetEvent } from "@/lib/network";
+import { getAdminOverview, getGuestPhotos, getMyEvents, type AdminGuest, type NetEvent } from "@/lib/network";
 
 const fmt = (iso: string | null) => (iso ? formatDate(iso, { day: "numeric", month: "short", year: "numeric" }) : "—");
 
@@ -30,13 +32,22 @@ export default function ManagePage() {
   const [eventsNote, setEventsNote] = useState<string | null>(null);
   const [guestsNote, setGuestsNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [archiving, setArchiving] = useState<string | null>(null);
+  // Photos changed on this page (until the next reload).
+  const [newPhotos, setNewPhotos] = useState<Map<string, string | null>>(new Map());
   useEffect(() => {
     if (!me.is_admin) router.replace("/home/");
   }, [me.is_admin, router]);
   const { data, error, reload } = useLoad(
     () =>
       me.is_admin
-        ? Promise.all([getMyEvents(), getAdminOverview(), getOpenEventIds(), getArchivedGuests()])
+        ? Promise.all([
+            getMyEvents(),
+            getAdminOverview(),
+            getOpenEventIds(),
+            getArchivedGuests(),
+            // Without photos the table still works, with initials.
+            getGuestPhotos().catch(() => new Map<string, string | null>()),
+          ])
         : Promise.resolve(null),
     [me.is_admin],
   );
@@ -48,7 +59,8 @@ export default function ManagePage() {
   if (!me.is_admin) return <Loading />;
   if (error) return <ErrorState message={error} />;
   if (!data) return <Loading />;
-  const [events, guests, loadedOpenIds, archivedGuests] = data;
+  const [events, guests, loadedOpenIds, archivedGuests, photos] = data;
+  const photoOf = (id: string) => (newPhotos.has(id) ? (newPhotos.get(id) ?? null) : (photos.get(id) ?? null));
   // Null until 0006_applications.sql has been run in Supabase: no switches then.
   const open = openIds ?? loadedOpenIds ?? new Set<string>();
 
@@ -100,6 +112,11 @@ export default function ManagePage() {
     }
   }
 
+  function photoChanged(g: AdminGuest, url: string | null) {
+    setNewPhotos((m) => new Map(m).set(g.id, url));
+    setGuestsNote({ ok: true, text: url ? `${g.full_name} has a new photo.` : `${g.full_name}'s photo is removed.` });
+  }
+
   async function copyEmails() {
     try {
       await navigator.clipboard.writeText(withoutLogin.map((g) => g.email).join("\n"));
@@ -125,6 +142,7 @@ export default function ManagePage() {
           password in <code className="text-bone">set_password</code> and send it to them.{" "}
           <span className="text-bone">Applications</span>: switch them on for an event below and share its link; accepting
           someone puts them on that event&apos;s guest list, and Archive moves the ones you won&apos;t accept to Archives.{" "}
+          <span className="text-bone">Photos</span>: tap someone&apos;s photo in the Guests table to change it.{" "}
           <span className="text-bone">Removing someone</span>: Archive in the Guests table. Archives, at the bottom, keeps
           everything until you restore it or delete it for good.
         </p>
@@ -265,22 +283,40 @@ export default function ManagePage() {
               {shown.map((g) => (
                 <tr key={g.id} className="transition duration-300 hover:bg-elevated/60">
                   <td className="px-5 py-4">
-                    <p className="flex items-center gap-2">
-                      {g.id === me.id || g.events === 0 ? (
-                        g.full_name
-                      ) : (
-                        <Link href={`/guest/?id=${g.id}`} className="underline-offset-4 hover:underline">
-                          {g.full_name}
+                    <div className="flex items-center gap-3">
+                      {g.id === me.id ? (
+                        <Link href="/profile/" title="Change your photo on your Profile page" className="relative shrink-0 rounded-full">
+                          <Avatar name={g.full_name} url={photoOf(g.id)} size="sm" />
+                          <span className="sr-only">Your photo: change it on your Profile page</span>
                         </Link>
+                      ) : (
+                        <GuestPhotoButton
+                          guest={{ id: g.id, full_name: g.full_name, photo_url: photoOf(g.id) }}
+                          onChanged={(url) => photoChanged(g, url)}
+                          onError={(text) =>
+                            setGuestsNote(text ? { ok: false, text: `Couldn't change ${g.full_name}'s photo. ${text}` } : null)
+                          }
+                        />
                       )}
-                      {g.is_admin && <span className="text-[10px] uppercase tracking-widest text-accent">Admin</span>}
-                      {!g.is_visible && (
-                        <span title="Hidden from other guests" className="text-mute">
-                          <EyeOff className="size-3.5" />
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-mute">{g.email}</p>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2">
+                          {g.id === me.id || g.events === 0 ? (
+                            g.full_name
+                          ) : (
+                            <Link href={`/guest/?id=${g.id}`} className="underline-offset-4 hover:underline">
+                              {g.full_name}
+                            </Link>
+                          )}
+                          {g.is_admin && <span className="text-[10px] uppercase tracking-widest text-accent">Admin</span>}
+                          {!g.is_visible && (
+                            <span title="Hidden from other guests" className="text-mute">
+                              <EyeOff className="size-3.5" />
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-mute">{g.email}</p>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-bone/80">{g.company ?? "—"}</td>
                   <td className="px-5 py-4">{g.events}</td>

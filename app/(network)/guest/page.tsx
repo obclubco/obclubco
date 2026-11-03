@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { GuestPhotoActions } from "@/components/AdminGuestPhoto";
 import { DateTile } from "@/components/EventCard";
 import { useMe } from "@/components/GuestGate";
 import { GuestProfile } from "@/components/GuestProfile";
@@ -25,7 +26,10 @@ function GuestDetail() {
   const router = useRouter();
   const isMe = id === me.id;
   const { data, error } = useLoad(() => Promise.all([getMyEvents(), getNetwork()]), [id]);
-  const guest = data?.[1].find((g) => g.id === id);
+  // A photo an admin just changed shows straight away.
+  const [newPhoto, setNewPhoto] = useState<{ id: string; url: string | null } | null>(null);
+  const loaded = data?.[1].find((g) => g.id === id);
+  const guest = loaded && newPhoto?.id === loaded.id ? { ...loaded, photo_url: newPhoto.url } : loaded;
   usePageTitle(guest?.full_name);
 
   // Your own profile lives on the Profile page.
@@ -48,7 +52,10 @@ function GuestDetail() {
       </Link>
       <div className="enter mt-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px]" style={{ "--d": "100ms" } as React.CSSProperties}>
         <div className="min-w-0">
-          <GuestProfile profile={guest} />
+          <GuestProfile
+            profile={guest}
+            actions={me.is_admin && <GuestPhotoActions guest={guest} onChanged={(url) => setNewPhoto({ id: guest.id, url })} />}
+          />
         </div>
         <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">
           <h2 className="eyebrow mb-4">{me.is_admin ? "Their events" : "Events in common"}</h2>
