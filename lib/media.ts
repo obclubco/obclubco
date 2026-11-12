@@ -58,6 +58,16 @@ function savedLinks() {
   return links!;
 }
 
+/** On signing out: forget the saved links, so the next person using this browser can't open the files with them. */
+export function forgetMediaLinks() {
+  links = null;
+  try {
+    localStorage.removeItem(LINKS_KEY);
+  } catch {
+    // Storage blocked: nothing was saved.
+  }
+}
+
 /** Links for opening these files (missing ones: the file is gone, or this person can't see it). */
 export async function mediaLinks(paths: string[]): Promise<Map<string, string>> {
   const saved = savedLinks();

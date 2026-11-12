@@ -15,10 +15,20 @@ import { isConfigured, supabase } from "@/lib/supabase";
 const INTRO = 1500;
 const at = (ms: number) => ({ "--d": `${INTRO + ms}ms` }) as React.CSSProperties;
 
-/** Where to go after logging in. Only same-site paths, and never back to the login page itself. */
+/**
+ * Where to go after logging in: only a page of this site, and never back to the login page itself. Anything else
+ * (another site, also when disguised as "/\evil.com" or with tabs or line breaks in it) goes to /home/.
+ */
 function safeNext(next: string | null) {
-  const ok = next?.startsWith("/") && !next.startsWith("//") && next !== "/" && !next.startsWith("/?") && !next.startsWith("/login");
-  return ok ? next! : "/home/";
+  if (!next || typeof window === "undefined" || !/^\/(?![/\\])/.test(next)) return "/home/";
+  try {
+    const url = new URL(next, window.location.origin);
+    if (url.origin !== window.location.origin) return "/home/";
+    const path = `${url.pathname}${url.search}${url.hash}`;
+    return path === "/" || path.startsWith("/?") || path.startsWith("/login") ? "/home/" : path;
+  } catch {
+    return "/home/";
+  }
 }
 
 /** The site's first page: guest log in, styled like the obclub.co hero, with an opening intro. */

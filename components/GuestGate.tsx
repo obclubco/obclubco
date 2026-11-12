@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { forgetMediaLinks } from "@/lib/media";
 import { clearCache, loadMe, type Me } from "@/lib/network";
 import { isConfigured, supabase } from "@/lib/supabase";
 import { errorMessage } from "@/lib/hooks";
@@ -51,6 +52,7 @@ export function GuestGate({ children }: { children: React.ReactNode }) {
     const { data } = supabase().auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         clearCache();
+        forgetMediaLinks();
         router.replace("/");
       }
     });
