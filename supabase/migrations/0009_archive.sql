@@ -300,7 +300,8 @@ create policy "admins delete archived applications" on public.applications
 -- someone whose profile was archived brings the profile back.
 -- Puts the person on the guest list (unless they're on it already) with what they told us, and on the event's
 -- guest list. Links from older applications become their LinkedIn, Instagram and website. Someone whose profile
--- was archived is brought back. Returns their guest id. They still need a login: Table Editor → guests → set_password.
+-- was archived is brought back, as a guest: admin rights come back only with Restore in Archives (anyone can apply
+-- with a former admin's email). Returns their guest id. They still need a login: Table Editor → guests → set_password.
 create or replace function public.accept_application(p_id uuid)
 returns uuid language plpgsql security definer
 set search_path = ''
@@ -339,7 +340,7 @@ begin
     values (a.email, a.full_name, a.company, a.role, a.city, a.phone, v_linkedin, v_instagram, v_website)
     returning id into v_guest;
   else
-    update public.guests g set archived_at = null where g.id = v_guest and g.archived_at is not null;
+    update public.guests g set archived_at = null, is_admin = false where g.id = v_guest and g.archived_at is not null;
   end if;
   if a.event_id is not null then
     insert into public.event_guests (event_id, guest_id) values (a.event_id, v_guest) on conflict do nothing;

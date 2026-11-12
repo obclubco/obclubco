@@ -201,6 +201,14 @@ export default function ManagePage() {
                   <td className="px-5 py-4">
                     {eventStatus(e) === "past" || !loadedOpenIds ? (
                       <span className="text-mute">—</span>
+                    ) : !e.is_published ? (
+                      // The application page never shows drafts (0012_security.sql).
+                      <span
+                        className="text-xs text-mute"
+                        title="Drafts can't take applications. Publish the event first: Table Editor → events → is_published."
+                      >
+                        Publish it first
+                      </span>
                     ) : (
                       <div className="flex items-center gap-3">
                         <button

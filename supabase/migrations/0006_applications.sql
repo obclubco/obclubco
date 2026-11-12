@@ -64,7 +64,8 @@ grant select, delete on public.applications to authenticated;
 -- 3. What the application page reads and sends (no login needed)
 -- ─────────────────────────────────────────────────────────────
 
--- Events taking applications that haven't finished yet, soonest first.
+-- Published events taking applications that haven't finished yet, soonest first. (Drafts stay private, even with
+-- applications switched on.)
 create or replace function public.get_open_events()
 returns table (
   id              uuid,
@@ -79,7 +80,7 @@ set search_path = ''
 as $$
   select e.id, e.title, e.description, e.starts_at, e.ends_at, e.cover_image_url
   from public.events e
-  where e.applications_open and coalesce(e.ends_at, e.starts_at + interval '5 hours') > now()
+  where e.applications_open and e.is_published and coalesce(e.ends_at, e.starts_at + interval '5 hours') > now()
   order by e.starts_at
 $$;
 
@@ -106,7 +107,7 @@ begin
   end if;
   if nullif(p ->> 'event_id', '') is not null then
     select e.id into v_event from public.events e
-    where e.id::text = lower(p ->> 'event_id') and e.applications_open
+    where e.id::text = lower(p ->> 'event_id') and e.applications_open and e.is_published
       and coalesce(e.ends_at, e.starts_at + interval '5 hours') > now();
     if v_event is null then
       raise exception 'EVENT_CLOSED';
@@ -117,9 +118,17 @@ begin
     raise exception 'TRY_LATER';
   end if;
 
-  -- Applying again for the same event replaces the earlier application while it's still waiting.
-  delete from public.applications a
-  where a.email = v_email and a.event_id is not distinct from v_event and a.status = 'new';
+  -- Applying again never replaces or removes an earlier application: anyone can type any email here, so that would
+  -- let a stranger wipe out someone's application and the call notes on it. The very same application sent twice
+  -- is kept once.
+  if exists (
+    select 1 from public.applications a
+    where a.email = v_email and a.event_id is not distinct from v_event and a.status = 'new'
+      and a.full_name = trim(p ->> 'full_name') and a.phone = trim(p ->> 'phone')
+      and a.note is not distinct from nullif(trim(p ->> 'note'), '')
+  ) then
+    return;
+  end if;
 
   insert into public.applications
     (event_id, full_name, email, phone, contact_via, links, company, role, city, note, referred_by)
@@ -144,7 +153,8 @@ $$;
 -- ─────────────────────────────────────────────────────────────
 -- Puts the person on the guest list (unless they're on it already) with what they told us, and on the event's
 -- guest list. Links from older applications become their LinkedIn, Instagram and website. Someone whose profile
--- was archived is brought back. Returns their guest id. They still need a login: Table Editor → guests → set_password.
+-- was archived is brought back, as a guest: admin rights come back only with Restore in Archives (anyone can apply
+-- with a former admin's email). Returns their guest id. They still need a login: Table Editor → guests → set_password.
 create or replace function public.accept_application(p_id uuid)
 returns uuid language plpgsql security definer
 set search_path = ''
@@ -183,7 +193,7 @@ begin
     values (a.email, a.full_name, a.company, a.role, a.city, a.phone, v_linkedin, v_instagram, v_website)
     returning id into v_guest;
   else
-    update public.guests g set archived_at = null where g.id = v_guest and g.archived_at is not null;
+    update public.guests g set archived_at = null, is_admin = false where g.id = v_guest and g.archived_at is not null;
   end if;
   if a.event_id is not null then
     insert into public.event_guests (event_id, guest_id) values (a.event_id, v_guest) on conflict do nothing;

@@ -101,7 +101,11 @@ begin
         now(), now(), now()
       );
     else
-      update auth.users set encrypted_password = v_hash, updated_at = now() where id = v_user;
+      -- Also confirms the email: a login someone else started for this email (by signing up, while sign-ups were
+      -- on) would otherwise stay unconfirmed and keep the guest out.
+      update auth.users
+      set encrypted_password = v_hash, email_confirmed_at = coalesce(email_confirmed_at, now()), updated_at = now()
+      where id = v_user;
     end if;
   exception when insufficient_privilege then
     raise exception 'Supabase didn''t allow setting the password from this table. Create the login under Authentication → Users instead.';

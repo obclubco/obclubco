@@ -35,7 +35,8 @@ project, but then each email has a single login for both sites.)
    [`supabase/migrations/0010_event_media.sql`](supabase/migrations/0010_event_media.sql) adds photos and videos to
    events (see *Photos and videos of events* below), and
    [`supabase/migrations/0011_admin_photos.sql`](supabase/migrations/0011_admin_photos.sql) lets admins change guests'
-   profile photos.
+   profile photos, and [`supabase/migrations/0012_security.sql`](supabase/migrations/0012_security.sql) has the fixes
+   from the security review (see *Security checklist* below).
    Those are the only files the networking site needs (`0001` to `0003` belong to the partner site, on the `partner`
    branch). Running them again is safe: nothing that exists is removed or changed.
 3. Optional: run [`supabase/seed-networking.sql`](supabase/seed-networking.sql) for example events and guests. Change
@@ -140,8 +141,10 @@ page leads there.
 | **Decline** | **Archive** the lead. It moves to *Archives* with its call notes (there's **Undo** right after). The page tells applicants their application is kept for later events and deleted if they ask: **Delete for good** in *Archives* does that. |
 
 Applications are also in Supabase → Table Editor → `applications`. Only admins can read them; the page can only add
-new ones. Applying again for the same event replaces the earlier application while it's waiting, a hidden field
-catches bots, and more than 60 applications in 10 minutes are asked to try again later.
+new ones. Applying again adds a new application next to the earlier one: nothing is replaced or removed, because
+anyone can type any email there (the very same application sent twice is kept once). Only published events take
+applications: for a draft, the Admin page says *Publish it first*. A hidden field catches bots, and more than 60
+applications in 10 minutes are asked to try again later.
 
 ### Applications in Telegram
 
@@ -159,8 +162,10 @@ the person's details out of it. Setting it up, once:
    *Connected to "your group"…* and a test message appears in the group. (If the bot is in several groups, it lists
    them with the line to run for each; if it can't see the group yet, it says what to do.)
 
-Use a group of just the people who review applications: the application page tells applicants that only the OB Club
-team sees their details. The token is kept in the `telegram_settings` table, which the website can't read. If
+Once it's connected: @BotFather → **/mybots** → your bot → **Bot Settings** → **Allow Groups?** → **Turn groups off**.
+The bot stays in your group, but nobody can add it to theirs, so running `telegram_connect` again later can never pick
+up a stranger's group. Use a group of just the people who review applications: the application page tells applicants
+that only the OB Club team sees their details. The token is kept in the `telegram_settings` table, which the website can't read. If
 messages stop arriving, its `last_error` column says why (e.g. the bot was removed from the group); applications are
 still saved either way. To switch it off, delete the row in `telegram_settings`; to use another group or bot, run
 `telegram_connect` again.
@@ -193,7 +198,8 @@ Nothing is deleted from the Admin page by accident any more: leads you don't acc
   Telegram message is marked *Archived*. Accepted leads stay under *Accepted*.
 - **Profiles**: **Archive** on someone's row in the **Guests** table (you can't archive yourself). They disappear from
   every guest list and their login stops working, but their profile, events and login are kept. Pasting their email
-  into a guest list skips them and says why. Accepting a new application from them brings them back.
+  into a guest list skips them and says why. Accepting a new application from them brings them back, as a guest:
+  someone who was an admin gets admin rights back only with **Restore**.
 - In **Archives**: **Restore** puts a lead back with the others, or a person back on their guest lists with their
   login working again. **Delete for good** is the only way to delete from the site: a lead with its call notes, or a
   person with their place on guest lists and their login. It asks first. (Profile photos stay in Supabase → Storage →
@@ -235,6 +241,22 @@ leaves out private fields; guests can only change their own profile fields, neve
 Profile photos go to the `guest-photos` storage bucket as public links, like any profile picture. Each guest can only
 add or delete photos in their own folder there; admins can in anyone's (`0011_admin_photos.sql`), and change only a
 guest's photo, not the rest of their profile.
+
+## Security checklist
+
+What the site's security relies on, beyond the code (from the review in November 2026):
+
+- **Supabase → Authentication → Sign In / Providers → Email**: **Allow new users to sign up** off (logins are only
+  made from the `guests` table), **Confirm email** on, and **Secure email change** on. With sign-ups on, anyone
+  could find out which emails are on the guest list and start a login for a guest who doesn't have one yet. In the
+  same Email settings, set **Minimum password length** to 8, as the `guests` table requires.
+- **Run every SQL file**, `0012_security.sql` included (*1. Set up Supabase*). Its last line says
+  `security fixes in place: true` when it worked.
+- **Telegram**: turn groups off for the bot once it's connected (*Applications in Telegram*).
+- **Security headers**: on GitHub Pages they can't be sent; Cloudflare Pages sends them (next section).
+- **Email (SPF and DMARC)**: the DNS records in *Email records for obclub.co* below.
+- Only the public **anon / publishable key** may go into the site; the deploy refuses a secret key. Keep the
+  `service_role` / secret key, the Telegram bot token and the GitHub tokens out of the code and out of chats.
 
 ## Security headers
 
@@ -332,6 +354,7 @@ supabase/migrations/0008_leads.sql        call notes on applications (admins onl
 supabase/migrations/0009_archive.sql      Archives: leads and profiles kept instead of deleted
 supabase/migrations/0010_event_media.sql  photos and videos of events (private Storage bucket)
 supabase/migrations/0011_admin_photos.sql admins change guests' profile photos
+supabase/migrations/0012_security.sql     fixes from the security review (applications, logins, limits)
 supabase/seed-networking.sql        example content
 scripts/security-headers.mjs        after each build: Content-Security-Policy in every page, out/_headers
 .github/workflows/deploy-networking.yml   builds and publishes networking.obclub.co

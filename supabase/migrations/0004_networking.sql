@@ -36,6 +36,21 @@ create table if not exists public.guests (
 );
 alter table public.guests add column if not exists archived_at timestamptz;
 
+-- Each interest at most 100 characters (the Profile page allows 40), so nobody can make everyone's pages heavy.
+-- "not valid": checked on every change from now on, without failing on what's there already.
+create or replace function public.texts_within(p_texts text[], p_max int)
+returns boolean language sql immutable
+set search_path = ''
+as $$ select coalesce(bool_and(char_length(t) <= p_max), true) from unnest(p_texts) t $$;
+grant execute on function public.texts_within(text[], int) to authenticated;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'guests_interests_length' and conrelid = 'public.guests'::regclass) then
+    alter table public.guests add constraint guests_interests_length check (public.texts_within(interests, 100)) not valid;
+  end if;
+end $$;
+
 -- Emails are stored lowercase (so "Jane@Example.com" typed in the Table Editor still matches the login).
 create or replace function public.guests_before_write()
 returns trigger language plpgsql
